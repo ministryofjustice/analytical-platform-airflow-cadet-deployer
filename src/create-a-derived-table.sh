@@ -26,10 +26,10 @@ function run_dbt() {
     else
       echo "dbt command failed on attempt ${attempt}. Retrying..."
       ((attempt++))
-      sleep 5  # Wait before retrying
+      sleep 5 # Wait before retrying
     fi
   done
-  set -e  # Re-enable immediate exit on error
+  set -e # Re-enable immediate exit on error
 }
 
 echo "Creating virtual environment and installing dependencies"

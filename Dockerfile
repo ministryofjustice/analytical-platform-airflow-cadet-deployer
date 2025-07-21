@@ -1,4 +1,5 @@
 #checkov:skip=CKV_DOCKER_2: HEALTHCHECK not required - This is a utility container
+#checkov:skip=CKV_DOCKER_3: USER is set in the base image (https://github.com/ministryofjustice/analytical-platform-airflow-python-base/blob/main/Dockerfile#L135)
 
 FROM ghcr.io/ministryofjustice/analytical-platform-airflow-python-base:1.16.0@sha256:96551185eef8ff5f54f82b6a55c5df570a795d155851cde1811f230423efca1b
 
