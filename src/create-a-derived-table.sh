@@ -28,6 +28,8 @@ function run_dbt() {
       ((attempt++))
       sleep 5  # Wait before retrying
     fi
+  done
+  set -e  # Re-enable immediate exit on error
 }
 
 echo "Creating virtual environment and installing dependencies"
