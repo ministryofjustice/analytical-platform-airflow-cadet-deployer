@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export REPOSITORY_PATH="${REPOSITORY_PATH:-"${ANALYTICAL_PLATFORM_DIRECTORY}/create-a-derived-table"}"
+export MODE="${MODE}"
+export DBT_PROFILES_DIR="${DBT_PROFILES_DIR:-"${REPOSITORY_PATH}/.dbt"}"
+export DBT_PROJECT="${DBT_PROJECT}"
+export DEPLOY_ENV="${DEPLOY_ENV}"
+
+echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ]"
+
+echo "Creating virtual environment and installing dependencies"
+cd "${REPOSITORY_PATH}"
+
+uv venv
+
+source .venv/bin/activate
+
+uv pip install --requirements requirements.txt
+
+echo "Changing to project directory [ ${DBT_PROJECT} ]"
+cd "${DBT_PROJECT}"
+
+echo "Generating models"
+python "${REPOSITORY_PATH}/scripts/generate_models.py" model_templates/ ./ --target "${DEPLOY_ENV}"
+
+echo "Running dbt debug"
+dbt debug
+
+echo "Running dbt clean"
+dbt clean
+
+echo "Running dbt deps"
+dbt deps
