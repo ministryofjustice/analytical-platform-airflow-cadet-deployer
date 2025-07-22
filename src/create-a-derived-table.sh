@@ -19,7 +19,7 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
-  if dbt "${MODE}" --profiles-dir /opt/analyticalplatform/create-a-derived-table/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
+  if dbt "${MODE}" --profiles-dir ${REPOSITORY_PATH}/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
     echo "dbt command succeeded"
     return 0
   else
