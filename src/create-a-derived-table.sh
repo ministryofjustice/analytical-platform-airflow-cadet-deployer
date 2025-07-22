@@ -54,35 +54,35 @@ function export_run_artefacts() {
 
     if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/target/compiled" ]]; then
       echo "Archiving and syncing compiled models to S3"
-      tar -czvf "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/compiled"
+      tar -czf "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/compiled"
       aws s3 cp "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
       aws s3 cp "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
     fi
 
     if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run" ]]; then
       echo "Archiving and syncing run models to S3"
-      tar -czvf "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run"
+      tar -czf "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run"
       aws s3 cp "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
       aws s3 cp "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
     fi
 
     if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/models" ]]; then
       echo "Archiving and syncing generated models to S3"
-      tar -czvf "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/models"
+      tar -czf "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/models"
       aws s3 cp "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
       aws s3 cp "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
     fi
 
     if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" ]]; then
       echo "Syncing logs to S3"
-      aws s3 cp "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/logs/"
-      aws s3 cp "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/logs/"
+      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/logs" --delete
+      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/logs" --delete
     fi
 
     if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/target" ]]; then
       echo "Syncing target to S3"
-      aws s3 cp "${REPOSITORY_PATH}/${DBT_PROJECT}/target" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/target/" --exclude "compiled/*" --exclude "run/*"
-      aws s3 cp "${REPOSITORY_PATH}/${DBT_PROJECT}/target" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/target/" --exclude "compiled/*" --exclude "run/*"
+      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/target" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/target/" --exclude "compiled/*" --exclude "run/*" --delete
+      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/target" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/target/" --exclude "compiled/*" --exclude "run/*" --delete
     fi
   else
     echo "DBT project [ ${DBT_PROJECT} ] is not supported for artefact export"
