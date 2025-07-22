@@ -15,22 +15,30 @@ export WORKFLOW_NAME="${WORKFLOW_NAME}"
 
 function run_dbt() {
   local max_retries=5
-  local attempt=1
+  local attempt=2
 
   # Disable immediate exit on error for the loop
   set +e
+  if dbt "${MODE}" --profiles-dir /opt/analyticalplatform/create-a-derived-table/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
+    echo "dbt command succeeded"
+    return 0
+  else
+    echo "dbt command failed, attempting to dbt retry..."
+  fi
   while [[ "${attempt}" -le "${max_retries}" ]]; do
     echo "Attempt ${attempt} of ${max_retries} to run dbt command"
-    if dbt "${MODE}" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
-      echo "dbt command succeeded on attempt ${attempt}"
-      break
-    elif [[ "${attempt}" -eq "${max_retries}" ]]; then
+    if [[ "${attempt}" -eq "${max_retries}" ]]; then
       echo "dbt command failed after ${max_retries} attempts"
       exit 1
     else
       echo "dbt command failed on attempt ${attempt}, retrying"
-      ((attempt++))
-      sleep 5 # Wait before retrying
+      if dbt retry; then
+        echo "DBT retry succeeded, continuing to export of artifacts"
+        return 0
+      else
+        ((attempt++))
+        sleep 5 # Wait before retrying
+      fi
     fi
   done
   set -e # Re-enable immediate exit on error
