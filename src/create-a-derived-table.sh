@@ -2,12 +2,16 @@
 
 set -euo pipefail
 
+export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-"eu-west-1"}"
 export REPOSITORY_PATH="${REPOSITORY_PATH:-"${ANALYTICAL_PLATFORM_DIRECTORY}/create-a-derived-table"}"
 export MODE="${MODE}"
 export DBT_PROFILES_DIR="${DBT_PROFILES_DIR:-"${REPOSITORY_PATH}/.dbt"}"
+export DBT_PROFILE_WORKGROUP="${DBT_PROFILE_WORKGROUP}"
 export DBT_PROJECT="${DBT_PROJECT}"
-export DEPLOY_ENV="${DEPLOY_ENV}"
 export DBT_SELECT_CRITERIA="${DBT_SELECT_CRITERIA}"
+export DEPLOY_ENV="${DEPLOY_ENV}"
+export S3_BUCKET="${S3_BUCKET:-"mojap-derived-tables"}"
+export WORKFLOW_NAME="${WORKFLOW_NAME}"
 
 function run_dbt() {
   local max_retries=5
@@ -21,15 +25,60 @@ function run_dbt() {
       echo "dbt command succeeded on attempt ${attempt}"
       break
     elif [[ "${attempt}" -eq "${max_retries}" ]]; then
-      echo "dbt command failed after ${max_retries} attempts. Exiting."
+      echo "dbt command failed after ${max_retries} attempts"
       exit 1
     else
-      echo "dbt command failed on attempt ${attempt}. Retrying..."
+      echo "dbt command failed on attempt ${attempt}, retrying"
       ((attempt++))
       sleep 5 # Wait before retrying
     fi
   done
   set -e # Re-enable immediate exit on error
+}
+
+function export_run_artefacts() {
+  RUN_TIME=$(date +%Y-%m-%dT%H:%M:%S)
+  export RUN_TIME
+
+  if [[ "${DBT_PROJECT}" == "mojap_derived_tables" ]]; then
+    echo "Exporting run artefacts for project [ ${DBT_PROJECT} ]"
+    mkdir --parents "${REPOSITORY_PATH}/tarballs"
+
+    if [[ -d "${REPOSITORY_PATH}/target/compiled" ]]; then
+      echo "Archiving and syncing compiled models to S3"
+      tar -czvf "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" target/compiled
+      aws s3 cp "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
+      aws s3 cp "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
+    fi
+
+    if [[ -d "${REPOSITORY_PATH}/target/run" ]]; then
+      echo "Archiving and syncing run models to S3"
+      tar -czvf "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" target/run
+      aws s3 cp "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
+      aws s3 cp "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
+    fi
+
+    if [[ -d "${REPOSITORY_PATH}/models" ]]; then
+      echo "Archiving and syncing generated models to S3"
+      tar -czvf "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" models
+      aws s3 cp "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
+      aws s3 cp "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
+    fi
+
+    if [[ -d "${REPOSITORY_PATH}/logs" ]]; then
+      echo "Syncing logs to S3"
+      aws s3 cp logs "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/logs/"
+      aws s3 cp logs "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/logs/"
+    fi
+
+    if [[ -d "${REPOSITORY_PATH}/target" ]]; then
+      echo "Syncing target to S3"
+      aws s3 cp target "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/target/" --exclude "compiled/*" --exclude "run/*"
+      aws s3 cp target "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/target/" --exclude "compiled/*" --exclude "run/*"
+    fi
+  else
+    echo "DBT project [ ${DBT_PROJECT} ] is not supported for artefact export"
+  fi
 }
 
 echo "Creating virtual environment and installing dependencies"
@@ -59,3 +108,6 @@ dbt deps
 
 echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
 run_dbt
+
+echo "Exporting run artefacts"
+export_run_artefacts
