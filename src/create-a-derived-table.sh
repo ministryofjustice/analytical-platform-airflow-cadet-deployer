@@ -19,7 +19,9 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
-  if dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
+  if [ "${MODE}" == "docs generate" ]; then
+    dbt docs generate --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"
+  elif dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
     echo "dbt command succeeded"
     return 0
   else
