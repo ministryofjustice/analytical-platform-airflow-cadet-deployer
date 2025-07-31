@@ -13,10 +13,24 @@ export DEPLOY_ENV="${DEPLOY_ENV}"
 export S3_BUCKET="${S3_BUCKET:-"mojap-derived-tables"}"
 export WORKFLOW_NAME="${WORKFLOW_NAME}"
 
+function soft_error() {
+  let overall_continues++
+  echo
+  if [[ {overall_continues} < 5 ]]; then
+    local message="$1"
+    echo "ERROR: ${message}"
+    echo "Attempting to continue execution"
+  else
+    echo "ERROR: ${message}"
+    echo "Exceeded maximum number of attempts, exiting"
+    exit 1
+  fi
+}
+
 function run_dbt() {
   local max_retries=5
   local attempt=2
-
+  trap 'soft_error' ERR
   # Disable immediate exit on error for the loop
   if dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
     echo "dbt command succeeded"
@@ -76,9 +90,7 @@ echo "Running dbt deps"
 dbt deps
 
 echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
-set +e
 run_dbt
 
 echo "Exporting run artefacts"
-set -e # Re-enable immediate exit on error
 export_run_artefacts
