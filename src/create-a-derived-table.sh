@@ -18,7 +18,6 @@ function run_dbt() {
   local attempt=2
 
   # Disable immediate exit on error for the loop
-  set +e
   if dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
     echo "dbt command succeeded"
     return 0
@@ -41,7 +40,6 @@ function run_dbt() {
       fi
     fi
   done
-  set -e # Re-enable immediate exit on error
 }
 
 function export_run_artefacts() {
@@ -78,7 +76,9 @@ echo "Running dbt deps"
 dbt deps
 
 echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
+set +e
 run_dbt
 
 echo "Exporting run artefacts"
+set -e # Re-enable immediate exit on error
 export_run_artefacts
