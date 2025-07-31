@@ -55,46 +55,9 @@ function run_dbt() {
 function export_run_artefacts() {
   RUN_TIME=$(date +%Y-%m-%dT%H:%M:%S)
   export RUN_TIME
+  export AIRFLOW_WORKFLOW_REF="${WORKFLOW_NAME:-"unknown_workflow"}"
 
-  if [[ "${DBT_PROJECT}" == "mojap_derived_tables" ]]; then
-    echo "Exporting run artefacts for project [ ${DBT_PROJECT} ]"
-    mkdir --parents "${REPOSITORY_PATH}/tarballs"
-
-    if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/target/compiled" ]]; then
-      echo "Archiving and syncing compiled models to S3"
-      tar -czf "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/compiled"
-      aws s3 cp "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
-      aws s3 cp "${REPOSITORY_PATH}/tarballs/compiled_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
-    fi
-
-    if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run" ]]; then
-      echo "Archiving and syncing run models to S3"
-      tar -czf "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run"
-      aws s3 cp "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
-      aws s3 cp "${REPOSITORY_PATH}/tarballs/run_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
-    fi
-
-    if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/models" ]]; then
-      echo "Archiving and syncing generated models to S3"
-      tar -czf "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "${REPOSITORY_PATH}/${DBT_PROJECT}/models"
-      aws s3 cp "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/tarballs/"
-      aws s3 cp "${REPOSITORY_PATH}/tarballs/generated_models.tar.gz" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/tarballs/"
-    fi
-
-    if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" ]]; then
-      echo "Syncing logs to S3"
-      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/logs" --delete
-      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/logs" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/logs" --delete
-    fi
-
-    if [[ -d "${REPOSITORY_PATH}/${DBT_PROJECT}/target" ]]; then
-      echo "Syncing target to S3"
-      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/target" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/latest/target/" --exclude "compiled/*" --exclude "run/*" --delete
-      aws s3 sync "${REPOSITORY_PATH}/${DBT_PROJECT}/target" "s3://${S3_BUCKET}/${DEPLOY_ENV}/run_artefacts/${WORKFLOW_NAME}/run_time=${RUN_TIME}/target/" --exclude "compiled/*" --exclude "run/*" --delete
-    fi
-  else
-    echo "DBT project [ ${DBT_PROJECT} ] is not supported for artefact export"
-  fi
+  python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
 }
 
 echo "Creating virtual environment and installing dependencies"
