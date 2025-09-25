@@ -1,2 +1,4 @@
 # USER not required as set in the base image
 AVD-DS-0002
+# Health check
+AVD-DS-0026
