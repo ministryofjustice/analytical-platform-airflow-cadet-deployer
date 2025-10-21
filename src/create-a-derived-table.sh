@@ -67,6 +67,9 @@ function repository_dispatch() {
   export RUN_TIME
   export BRANCH="${GITHUB_REF_NAME:-"refs/heads/main"}"
 
+  echo "Triggering GitHub Actions workflow for post-deploy metadata registration"
+  echo "{\"ref\":\"${BRANCH}\",\"inputs\":{\"ref\": \"${BRANCH}\", \"run_id\": \"{123456789}\", \"run_time\": \"${RUN_TIME}\", \"workflow_name\": \"${AIRFLOW_WORKFLOW_REF}\", \"workflow_ref\": \"${AIRFLOW_WORKFLOW_REF}\"}}"
+
   curl -L \
     -X POST \
     -H "Accept: application/vnd.github+json" \
@@ -107,6 +110,10 @@ if run_dbt; then
   echo "dbt run completed successfully"
   echo "Exporting run artefacts"
   export_run_artefacts
+  if ${DEPLOY_ENV} == "prod"; then
+    echo "Triggering repository dispatch for post-deploy metadata registration"
+    repository_dispatch
+  fi
   exit 0
 else
   echo "dbt run failed after 5 retries"
