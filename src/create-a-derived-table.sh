@@ -29,16 +29,24 @@ function run_dbt() {
     echo "Attempt ${attempt} of ${max_retries} to run dbt command"
     if [[ "${attempt}" -eq "${max_retries}" ]]; then
       echo "dbt command failed after ${max_retries} attempts"
-      exit 1
+      return 1
     else
       echo "dbt command failed on attempt ${attempt}, retrying"
-      if dbt retry; then
-        echo "DBT retry succeeded, continuing to export of artifacts"
-        return 0
+      if [[ -f "${REPOSITORY_PATH}/mojap-derived-tables/target/run_results.json" ]]; then
+        echo "run_results.json exists, retrying"
+        if dbt retry; then
+          echo "dbt retry succeeded"
+          return 0
+        fi
       else
-        ((attempt++))
-        sleep 5 # Wait before retrying
+        echo "DBT run failed without artefacts, re-running full command"
+        if dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
+          echo "dbt command succeeded"
+          return 0
+        fi
       fi
+      ((attempt++))
+      sleep 5 # Wait before retrying
     fi
   done
   set -e # Re-enable immediate exit on error
@@ -78,7 +86,14 @@ echo "Running dbt deps"
 dbt deps
 
 echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
-run_dbt
-
-echo "Exporting run artefacts"
-export_run_artefacts
+if run_dbt; then
+  echo "dbt run completed successfully"
+  echo "Exporting run artefacts"
+  export_run_artefacts
+  exit 0
+else
+  echo "dbt run failed after 5 retries"
+  echo "Exporting run artefacts"
+  export_run_artefacts
+  exit 1
+fi
