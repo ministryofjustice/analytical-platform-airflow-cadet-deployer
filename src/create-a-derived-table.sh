@@ -12,6 +12,7 @@ export DBT_SELECT_CRITERIA="${DBT_SELECT_CRITERIA}"
 export DEPLOY_ENV="${DEPLOY_ENV}"
 export S3_BUCKET="${S3_BUCKET:-"mojap-derived-tables"}"
 export WORKFLOW_NAME="${WORKFLOW_NAME}"
+export GITHUB_PAT="${SECRET_GITHUB_PAT}"
 
 function run_dbt() {
   local max_retries=5
@@ -58,6 +59,22 @@ function export_run_artefacts() {
   export AIRFLOW_WORKFLOW_REF="${WORKFLOW_NAME:-"unknown_workflow"}"
 
   python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
+}
+
+function repository_dispatch() {
+  export AIRFLOW_WORKFLOW_REF="${WORKFLOW_NAME:-"unknown_workflow"}"
+  RUN_TIME=$(date +%Y-%m-%dT%H:%M:%S)
+  export RUN_TIME
+  export BRANCH="${GITHUB_REF_NAME:-"refs/heads/main"}"
+
+  curl -L \
+    -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer ${GITHUB_PAT}" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/moj-analytical-services/create-a-derived-table/actions/workflows/.github/workflows/post-deploy-register-table-apc/dispatches \
+    -d '{"ref":"${BRANCH}","inputs":{"ref": "${{ BRANCH }}", "run_id": "{{ 123456789 }}", "run_time": "${{ RUN_TIME }}", "workflow_name": "${{ AIRFLOW_WORKFLOW_REF }}", "workflow_ref": "${{ AIRFLOW_WORKFLOW_REF}}"}}'
+
 }
 
 echo "Creating virtual environment and installing dependencies"
