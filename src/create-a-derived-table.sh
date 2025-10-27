@@ -95,7 +95,7 @@ dbt deps
 
 echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
 
-if STATE_MODE
+if STATE_MODE; then
   import_run_artefacts
   export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
 fi
