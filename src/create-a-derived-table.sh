@@ -84,6 +84,7 @@ cd "${DBT_PROJECT}"
 if [ "$DBT_PROJECT" = "emd" ]; then
   echo "Generating env vars for emd project."
   python3 "${REPOSITORY_PATH}/${DBT_PROJECT}/scripts/environment.py"
+  # shellcheck source=src/my_project/set_env.sh
   source "${REPOSITORY_PATH}/${DBT_PROJECT}/set_env.sh"
 fi
 
