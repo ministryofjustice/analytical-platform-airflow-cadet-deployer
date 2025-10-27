@@ -11,6 +11,7 @@ export DBT_PROJECT="${DBT_PROJECT}"
 export DBT_SELECT_CRITERIA="${DBT_SELECT_CRITERIA}"
 export DEPLOY_ENV="${DEPLOY_ENV}"
 export S3_BUCKET="${S3_BUCKET:-"mojap-derived-tables"}"
+export STATE_MODE="${STATE_MODE:-false}"
 export WORKFLOW_NAME="${WORKFLOW_NAME}"
 
 function run_dbt() {
@@ -60,6 +61,13 @@ function export_run_artefacts() {
   python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
 }
 
+function import_run_artefacts() {
+  ARTEFACT_TARGET=${ARTEFACT_TARGET:-"target"}
+  export ARTEFACT_TARGET
+
+  python "${REPOSITORY_PATH}/scripts/import_run_artefacts.py" --target $ARTEFACT_TARGET
+}
+
 echo "Creating virtual environment and installing dependencies"
 cd "${REPOSITORY_PATH}"
 
@@ -86,6 +94,12 @@ echo "Running dbt deps"
 dbt deps
 
 echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
+
+if STATE_MODE
+  import_run_artefacts
+  export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
+fi
+
 if run_dbt; then
   echo "dbt run completed successfully"
   echo "Exporting run artefacts"
