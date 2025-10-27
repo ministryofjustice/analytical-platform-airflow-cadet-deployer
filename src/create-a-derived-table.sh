@@ -65,7 +65,7 @@ function import_run_artefacts() {
   ARTEFACT_TARGET=${ARTEFACT_TARGET:-"target"}
   export ARTEFACT_TARGET
 
-  python "${REPOSITORY_PATH}/scripts/import_run_artefacts.py" --target $ARTEFACT_TARGET
+  python "${REPOSITORY_PATH}/scripts/import_run_artefacts.py" --target "$ARTEFACT_TARGET"
 }
 
 echo "Creating virtual environment and installing dependencies"
@@ -81,10 +81,10 @@ uv pip install --requirements requirements.txt
 echo "Changing to project directory [ ${DBT_PROJECT} ]"
 cd "${DBT_PROJECT}"
 
-if [ $DBT_PROJECT = "emd" ]; then
+if [ "$DBT_PROJECT" = "emd" ]; then
   echo "Generating env vars for emd project."
-  python3 scripts/environment.py
-  source set_env.sh
+  python3 "${REPOSITORY_PATH}/${DBT_PROJECT}/scripts/environment.py"
+  source "${REPOSITORY_PATH}/${DBT_PROJECT}/set_env.sh"
 fi
 
 echo "Generating models"
