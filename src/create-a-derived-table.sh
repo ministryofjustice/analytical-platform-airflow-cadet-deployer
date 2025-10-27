@@ -81,6 +81,12 @@ uv pip install --requirements requirements.txt
 echo "Changing to project directory [ ${DBT_PROJECT} ]"
 cd "${DBT_PROJECT}"
 
+if $DBT_PROJECT == "emd"; then
+  echo "Generating env vars for emd project."
+  python3 scripts/environment.py
+  source set_env.sh
+fi
+
 echo "Generating models"
 python "${REPOSITORY_PATH}/scripts/generate_models.py" model_templates/ ./ --target "${DEPLOY_ENV}"
 
@@ -95,7 +101,7 @@ dbt deps
 
 echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
 
-if STATE_MODE; then
+if $STATE_MODE; then
   import_run_artefacts
   export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
 fi
