@@ -13,6 +13,8 @@ export DEPLOY_ENV="${DEPLOY_ENV}"
 export S3_BUCKET="${S3_BUCKET:-"mojap-derived-tables"}"
 export STATE_MODE="${STATE_MODE:-false}"
 export WORKFLOW_NAME="${WORKFLOW_NAME}"
+export EM_REMOVE_HISTORIC="${EM_REMOVE_HISTORIC:-false}"
+export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 
 function run_dbt() {
   local max_retries=5
@@ -86,11 +88,11 @@ if [ "$DBT_PROJECT" = "hmpps_electronic_monitoring_data_tables" ]; then
   python3 "${REPOSITORY_PATH}/${DBT_PROJECT}/scripts/environment.py"
   # shellcheck source=entrypoint.sh
   source "${REPOSITORY_PATH}/${DBT_PROJECT}/set_env.sh"
-  if [ "$EM_REMOVE_HISTORIC" = true ]; then
+  if [ "$EM_REMOVE_HISTORIC" = "true" ]; then
     rm -rf models/historic
     rm -rf analyses
   fi
-  if [ "$EM_REMOVE_LIVE" = true ]; then
+  if [ "$EM_REMOVE_LIVE" = "true" ]; then
     rm -rf models/live
   fi
 fi
