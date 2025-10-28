@@ -81,7 +81,7 @@ uv pip install --requirements requirements.txt
 echo "Changing to project directory [ ${DBT_PROJECT} ]"
 cd "${DBT_PROJECT}"
 
-if [ "$DBT_PROJECT" = "emd" ]; then
+if [ "$DBT_PROJECT" = "hmpps_electronic_monitoring_data_tables" ]; then
   echo "Generating env vars for emd project."
   python3 "${REPOSITORY_PATH}/${DBT_PROJECT}/scripts/environment.py"
   # shellcheck source=entrypoint.sh
