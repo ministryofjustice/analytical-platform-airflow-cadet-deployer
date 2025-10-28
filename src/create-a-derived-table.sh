@@ -89,11 +89,13 @@ if [ "$DBT_PROJECT" = "hmpps_electronic_monitoring_data_tables" ]; then
   # shellcheck source=entrypoint.sh
   source "${REPOSITORY_PATH}/${DBT_PROJECT}/set_env.sh"
   if [ "$EM_REMOVE_HISTORIC" = "true" ]; then
-    rm -rf models/historic
-    rm -rf analyses
+    echo "Removing historic models for EM..."
+    rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/historic"
+    rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/analyses"
   fi
   if [ "$EM_REMOVE_LIVE" = "true" ]; then
-    rm -rf models/live
+    echo "Removing live models for EM..."
+    rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/live"
   fi
 fi
 
