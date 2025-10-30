@@ -88,16 +88,12 @@ if [ "$DBT_PROJECT" = "hmpps_electronic_monitoring_data_tables" ]; then
   python3 "${REPOSITORY_PATH}/${DBT_PROJECT}/scripts/environment.py"
   # shellcheck source=entrypoint.sh
   source "${REPOSITORY_PATH}/${DBT_PROJECT}/set_env.sh"
-  echo "em_remove_historic is set to $EM_REMOVE_HISTORIC"
-  echo [ "$EM_REMOVE_HISTORIC" = "true" ]
-  echo "em_remove_live is set to $EM_REMOVE_LIVE"
-  echo [ "$EM_REMOVE_LIVE" = "true" ]
-  if [ "$EM_REMOVE_HISTORIC" = "true" ]; then
+  if [ "$EM_REMOVE_HISTORIC" = "True" ]; then
     echo "Removing historic models for EM..."
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/historic"
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/analyses"
   fi
-  if [ "$EM_REMOVE_LIVE" = "true" ]; then
+  if [ "$EM_REMOVE_LIVE" = "True" ]; then
     echo "Removing live models for EM..."
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/live"
   fi
