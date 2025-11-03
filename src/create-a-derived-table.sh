@@ -35,7 +35,7 @@ function run_dbt() {
       return 1
     else
       echo "dbt command failed on attempt ${attempt}, retrying"
-      if [[ -f "${REPOSITORY_PATH}/mojap-derived-tables/target/run_results.json" ]]; then
+      if [[ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]]; then
         echo "run_results.json exists, retrying"
         if dbt retry; then
           echo "dbt retry succeeded"
