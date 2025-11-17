@@ -126,7 +126,7 @@ if $STATE_MODE; then
 fi
 
 if run_dbt; then
-  echo "dbt run completed successfully"
+  echo "dbt run (partially) succeeded"
   echo "Exporting run artefacts"
   export_run_artefacts
   exit 0
