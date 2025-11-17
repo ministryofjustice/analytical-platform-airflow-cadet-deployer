@@ -19,7 +19,7 @@ export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 function run_dbt() {
   local max_retries=5
   local attempt=2
-  local run_results_exists=0
+  local run_results_exists=false
 
   # Disable immediate exit on error for the loop
   set +e
@@ -32,7 +32,7 @@ function run_dbt() {
   while [[ "${attempt}" -le "${max_retries}" ]]; do
     echo "Attempt ${attempt} of ${max_retries} to run dbt command"
     if [[ "${attempt}" -eq "${max_retries}" ]]; then
-      if run_results_exists=0; then
+      if ! $run_results_exists; then
         echo "dbt command failed after ${max_retries} attempts"
         return 1
       else
@@ -42,8 +42,8 @@ function run_dbt() {
     else
       echo "dbt command failed on attempt ${attempt}, retrying"
       if [[ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]]; then
-        run_results_exists=1
-        echo "run_results.json exists, retrying"
+        run_results_exists=true
+        echo "run_results.json exists is ${run_results_exists}"
         if dbt retry; then
           echo "dbt retry succeeded"
           return 0
