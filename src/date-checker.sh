@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # Get day of week (0=Sunday), day of month, and month/year
 weekday=$(date +%w)
 day=$(date +%d)
