@@ -7,6 +7,7 @@ export MOJAP_IMAGE_VERSION="${MOJAP_IMAGE_VERSION:-"unknown"}"
 
 echo "=== Running Airflow CaDeT Deployer (version: ${MOJAP_IMAGE_VERSION}) ==="
 
+echo "=== Is Sunday Deploy: ${IS_SUNDAY_DEPLOY} ==="
 if [ "${IS_SUNDAY_DEPLOY}" = "true" ]; then
   echo "=== Checking if today is the first Sunday of the month ==="
   ./date-checker.sh
