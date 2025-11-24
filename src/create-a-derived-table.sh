@@ -139,7 +139,7 @@ if $STATE_MODE; then
   export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
 fi
 
-if [ "$WORKFLOW_NAME" = "deploy-nomis-daily" ]; then
+if [ "$WORKFLOW_NAME" = "nomis-daily" ]; then
   nomis_setup
 fi
 
