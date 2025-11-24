@@ -62,6 +62,20 @@ function run_dbt() {
   set -e # Re-enable immediate exit on error
 }
 
+function nomis_setup() {
+  echo "Running NOMIS specific setup"
+  dbt source freshness --target "${DEPLOY_ENV}" --select "source:nomis_unixtime"
+  python "${REPOSITORY_PATH}/scripts/generate_partition_queries.py" "${REPOSITORY_PATH}/${DBT_PROJECT}/model_templates/" "${REPOSITORY_PATH}/${DBT_PROJECT}" --target "${DEPLOY_ENV}" --source "nomis"
+  set +e
+  dbt run-operation check_if_models_exist_by_tag \
+    --args '{"tag_names":["dual_materialization","nomis_daily"], "tag_mode":"intersect"}' \
+    --target "${DEPLOY_ENV}" \
+    | grep "|model_check|" | sed 's/.*|model_check|*//' \
+    | while read -r variable; do export "$variable"=$variable; \
+    echo "Added: $variable"; done
+  set -e
+}
+
 function export_run_artefacts() {
   RUN_TIME=$(date +%Y-%m-%dT%H:%M:%S)
   export RUN_TIME
@@ -123,6 +137,10 @@ echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment 
 if $STATE_MODE; then
   import_run_artefacts
   export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
+fi
+
+if [ "$WORKFLOW_NAME" = "deploy-nomis-daily" ]; then
+  nomis_setup
 fi
 
 if run_dbt; then
