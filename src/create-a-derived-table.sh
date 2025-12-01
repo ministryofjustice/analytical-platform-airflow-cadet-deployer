@@ -15,6 +15,7 @@ export STATE_MODE="${STATE_MODE:-false}"
 export WORKFLOW_NAME="${WORKFLOW_NAME}"
 export EM_REMOVE_HISTORIC="${EM_REMOVE_HISTORIC:-false}"
 export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
+export THREAD_COUNT="${THREAD_COUNT:-"0"}" # default to let us know to use built in value
 
 function run_dbt() {
   local max_retries=5
@@ -23,7 +24,14 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
-  if dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
+  if [ "${THREAD_COUNT}" -eq 0 ]; then
+    DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV}"
+    export DBT_COMMAND
+  else
+    DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV} --threads ${THREAD_COUNT}"
+    export DBT_COMMAND
+  fi
+  if $DBT_COMMAND; then
     echo "dbt command succeeded"
     return 0
   else
@@ -64,7 +72,13 @@ function run_dbt() {
 
 function nomis_setup() {
   echo "Running NOMIS specific setup"
-  dbt source freshness --target "${DEPLOY_ENV}" --select "source:nomis_unixtime"
+  if dbt source freshness --target "${DEPLOY_ENV}" --select "source:nomis_unixtime"; then
+    echo "NOMIS source freshness check passed"
+    rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
+  else
+    echo "NOMIS source freshness check failed"
+    exit 1
+  fi
   python "${REPOSITORY_PATH}/scripts/generate_partition_queries.py" "${REPOSITORY_PATH}/${DBT_PROJECT}/model_templates/" "${REPOSITORY_PATH}/${DBT_PROJECT}" --target "${DEPLOY_ENV}" --source "nomis"
   set +e
   dbt run-operation check_if_models_exist_by_tag \
@@ -135,7 +149,7 @@ dbt clean
 echo "Running dbt deps"
 dbt deps
 
-echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ]"
+echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ] and thread count [ ${THREAD_COUNT} ]"
 
 if $STATE_MODE; then
   import_run_artefacts
