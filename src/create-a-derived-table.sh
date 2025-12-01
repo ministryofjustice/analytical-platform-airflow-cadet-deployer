@@ -78,8 +78,8 @@ function nomis_setup() {
     echo "NOMIS source freshness check passed"
     rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
   elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
-      echo "NOMIS source freshness check failed on freshness, exiting."
-      return 1
+    echo "NOMIS source freshness check failed on freshness, exiting."
+    return 1
   else
     echo "NOMIS source freshness check failed without running, retrying."
     while [[ "${attempt}" -le "${max_retries}" ]]; do
