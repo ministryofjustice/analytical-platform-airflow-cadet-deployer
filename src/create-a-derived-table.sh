@@ -25,11 +25,9 @@ function run_dbt() {
   # Disable immediate exit on error for the loop
   set +e
   if [ "${THREAD_COUNT}" = "default" ]; then
-    DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV}"
-    export DBT_COMMAND
+    local DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV}"
   else
-    DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV} --threads ${THREAD_COUNT}"
-    export DBT_COMMAND
+    local DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV} --threads ${THREAD_COUNT}"
   fi
   if $DBT_COMMAND; then
     echo "dbt command succeeded"
@@ -75,8 +73,7 @@ function nomis_setup() {
   local max_retries=5
   local attempt=2
   set +e
-  DBT_COMMAND="dbt source freshness --target ${DEPLOY_ENV} --select source:nomis_unixtime"
-  export DBT_COMMAND
+  local DBT_COMMAND="dbt source freshness --target ${DEPLOY_ENV} --select source:nomis_unixtime"
   if $DBT_COMMAND; then
     echo "NOMIS source freshness check passed"
     rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
@@ -100,7 +97,7 @@ function nomis_setup() {
           echo "NOMIS source freshness check failed on freshness, exiting."
           return 1
         else
-          echo "NOMIS source freshness check failed without running, retrying."
+          echo "NOMIS source freshness check failed on attempt ${attempt} without running, retrying."
         fi
         ((attempt++))
         sleep 10 # Wait before retrying
