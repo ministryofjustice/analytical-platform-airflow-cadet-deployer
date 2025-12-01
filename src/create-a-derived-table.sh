@@ -72,15 +72,26 @@ function run_dbt() {
 
 function nomis_setup() {
   echo "Running NOMIS specific setup"
+  set +e
   if dbt source freshness --target "${DEPLOY_ENV}" --select "source:nomis_unixtime"; then
     echo "NOMIS source freshness check passed"
     rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
   else
-    echo "NOMIS source freshness check failed"
-    exit 1
+    if [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
+      echo "NOMIS source freshness check failed."
+      return 1
+    fi
+    echo "NOMIS source freshness check failed before starting, retrying."
+    if dbt source freshness --target "${DEPLOY_ENV}" --select "source:nomis_unixtime"; then
+      echo "NOMIS source freshness check passed on retry"
+      rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
+      return 0
+    else
+      echo "NOMIS source freshness check failed again, exiting."
+      return 1
+    fi
   fi
   python "${REPOSITORY_PATH}/scripts/generate_partition_queries.py" "${REPOSITORY_PATH}/${DBT_PROJECT}/model_templates/" "${REPOSITORY_PATH}/${DBT_PROJECT}" --target "${DEPLOY_ENV}" --source "nomis"
-  set +e
   dbt run-operation check_if_models_exist_by_tag \
     --args '{"tag_names":["dual_materialization","nomis_daily"], "tag_mode":"intersect"}' \
     --target "${DEPLOY_ENV}" |
