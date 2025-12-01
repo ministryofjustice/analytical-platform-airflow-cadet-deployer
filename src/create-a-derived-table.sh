@@ -64,7 +64,7 @@ function run_dbt() {
         fi
       fi
       ((attempt++))
-      sleep 5 # Wait before retrying
+      sleep 10 # Wait before retrying
     fi
   done
   set -e # Re-enable immediate exit on error
@@ -72,16 +72,41 @@ function run_dbt() {
 
 function nomis_setup() {
   echo "Running NOMIS specific setup"
+  local max_retries=5
+  local attempt=2
   set +e
-  if dbt source freshness --target "${DEPLOY_ENV}" --select "source:nomis_unixtime"; then
+  DBT_COMMAND="dbt source freshness --target ${DEPLOY_ENV} --select source:nomis_unixtime"
+  export DBT_COMMAND
+  if $DBT_COMMAND; then
     echo "NOMIS source freshness check passed"
     rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
-  else
-    if [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
-      echo "NOMIS source freshness check failed."
+  elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
+      echo "NOMIS source freshness check failed on freshness, exiting."
       return 1
-    fi
-    echo "NOMIS source freshness check failed before starting, retrying."
+  else
+    echo "NOMIS source freshness check failed without running, retrying."
+    while [[ "${attempt}" -le "${max_retries}" ]]; do
+      echo "Attempt ${attempt} of ${max_retries} to run NOMIS source freshness check"
+      if [[ "${attempt}" -eq "${max_retries}" ]]; then
+        echo "NOMIS source freshness check failed after ${max_retries} attempts, exiting."
+        return 1
+      else
+        echo "NOMIS source freshness check failed on attempt ${attempt}, retrying"
+        if $DBT_COMMAND; then
+          echo "NOMIS source freshness check passed on retry"
+          rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
+          return 0
+        elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
+          echo "NOMIS source freshness check failed on freshness, exiting."
+          return 1
+        else
+          echo "NOMIS source freshness check failed without running, retrying."
+        fi
+        ((attempt++))
+        sleep 10 # Wait before retrying
+      fi
+    done
+  fi
     if dbt source freshness --target "${DEPLOY_ENV}" --select "source:nomis_unixtime"; then
       echo "NOMIS source freshness check passed on retry"
       rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
