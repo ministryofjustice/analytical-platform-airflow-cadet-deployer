@@ -15,7 +15,7 @@ export STATE_MODE="${STATE_MODE:-false}"
 export WORKFLOW_NAME="${WORKFLOW_NAME}"
 export EM_REMOVE_HISTORIC="${EM_REMOVE_HISTORIC:-false}"
 export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
-export THREAD_COUNT="${THREAD_COUNT:-"0"}" # default to let us know to use built in value
+export THREAD_COUNT="${THREAD_COUNT:-"default"}"
 
 function run_dbt() {
   local max_retries=5
@@ -24,7 +24,7 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
-  if [ "${THREAD_COUNT}" -eq 0 ]; then
+  if [ "${THREAD_COUNT}" = "default" ]; then
     DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV}"
     export DBT_COMMAND
   else
