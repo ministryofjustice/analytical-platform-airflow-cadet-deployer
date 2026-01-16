@@ -6,6 +6,11 @@ FROM ghcr.io/ministryofjustice/analytical-platform-airflow-python-base:1.23.0@sh
 ARG MOJAP_IMAGE_VERSION="default"
 ENV MOJAP_IMAGE_VERSION=${MOJAP_IMAGE_VERSION}
 
+WORKDIR ${ANALYTICAL_PLATFORM_DIRECTORY}
+
+COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
 COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} --chmod=0755 src/ ${ANALYTICAL_PLATFORM_DIRECTORY}
 
 ENTRYPOINT ["./entrypoint.sh"]
