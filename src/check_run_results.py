@@ -84,6 +84,7 @@ def _download_run_results_from_s3(
     workflow_name: str,
     bucket: str = "mojap-derived-tables",
 ) -> list[dict]:
+    """Download run_results files from S3 and return parsed JSON objects."""
     prefix = f"{deploy_env}/run_artefacts/{workflow_name}/latest/target/"
     client = boto3.client("s3")
     paginator = client.get_paginator("list_objects_v2")
@@ -174,6 +175,7 @@ def assert_success(
 
 
 def main() -> int:
+    """Parse inputs, load run_results data, and validate unique_id statuses."""
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(message)s",
@@ -190,14 +192,16 @@ def main() -> int:
         dest="unique_ids",
         nargs="+",
         help=(
-            "Unique ID(s) to check. You can pass multiple values or a comma-separated list."
+            "Unique ID(s) to check. You can pass multiple values or a comma-separated "
+            "list."
         ),
     )
     parser.add_argument(
         "--unique-id-yaml",
         type=Path,
         help=(
-            "Path to a YAML file containing models for a dataset. Uses DATASET_TARGET to select the name."
+            "Path to a YAML file containing models for a dataset. Uses "
+            "DATASET_TARGET to select the name."
         ),
     )
     parser.add_argument(
@@ -228,7 +232,11 @@ def main() -> int:
 
     deploy_env = os.environ.get("DEPLOY_ENV")
     workflow_name = os.environ.get("WORKFLOW_NAME")
-    logging.info("Loaded env DEPLOY_ENV=%s WORKFLOW_NAME=%s", deploy_env, workflow_name)
+    logging.info(
+        "Loaded env DEPLOY_ENV=%s WORKFLOW_NAME=%s",
+        deploy_env,
+        workflow_name,
+    )
 
     logging.info("Beginning run_results validation")
     assert_success(
