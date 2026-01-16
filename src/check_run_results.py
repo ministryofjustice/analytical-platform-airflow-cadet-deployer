@@ -17,7 +17,7 @@ import boto3
 
 def _normalize_unique_id(value: str) -> str:
     value = value.strip().rstrip(",")
-    if (value.startswith("\"") and value.endswith("\"")) or (
+    if (value.startswith('"') and value.endswith('"')) or (
         value.startswith("'") and value.endswith("'")
     ):
         value = value[1:-1].strip()
@@ -84,9 +84,7 @@ def _download_run_results_from_s3(
     workflow_name: str,
     bucket: str = "mojap-derived-tables",
 ) -> list[dict]:
-    prefix = (
-        f"{deploy_env}/run_artefacts/{workflow_name}/latest/target/"
-    )
+    prefix = f"{deploy_env}/run_artefacts/{workflow_name}/latest/target/"
     client = boto3.client("s3")
     paginator = client.get_paginator("list_objects_v2")
     keys: list[str] = []
@@ -137,9 +135,7 @@ def assert_success(
         raise ValueError(
             "DEPLOY_ENV and WORKFLOW_NAME are required to locate run_results files."
         )
-    run_results_list = _download_run_results_from_s3(
-        deploy_env, workflow_name
-    )
+    run_results_list = _download_run_results_from_s3(deploy_env, workflow_name)
 
     for run_results in run_results_list:
         statuses = _index_statuses(run_results)
@@ -223,9 +219,7 @@ def main() -> int:
         dataset_target = os.environ.get("DATASET_TARGET")
         if not dataset_target:
             raise ValueError("DATASET_TARGET is required when using --unique-id-yaml.")
-        unique_ids.extend(
-            _parse_unique_ids_yaml(args.unique_id_yaml, dataset_target)
-        )
+        unique_ids.extend(_parse_unique_ids_yaml(args.unique_id_yaml, dataset_target))
     if not unique_ids:
         raise ValueError(
             "At least one unique_id is required via --unique-id or --unique-id-yaml."
