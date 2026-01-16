@@ -128,6 +128,7 @@ def assert_success(
     deploy_env: str | None = None,
     workflow_name: str | None = None,
 ) -> None:
+    """Assert that all unique_ids have a final status of 'success'."""
     unique_ids = list(unique_ids)
     success_map = {unique_id: False for unique_id in unique_ids}
     last_status: dict[str, str] = {}
