@@ -57,12 +57,14 @@ function run_dbt() {
         echo
         if dbt retry; then
           echo "dbt retry succeeded"
+          mv "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results_${attempt}.json"
           return 0
         fi
       else
         echo "DBT run failed without artefacts, re-running full command"
         if dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
           echo "dbt command succeeded"
+          mv "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results_1.json"
           return 0
         fi
       fi
