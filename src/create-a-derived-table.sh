@@ -16,6 +16,7 @@ export WORKFLOW_NAME="${WORKFLOW_NAME}"
 export EM_REMOVE_HISTORIC="${EM_REMOVE_HISTORIC:-false}"
 export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 export THREAD_COUNT="${THREAD_COUNT:-"default"}"
+export DATASET_TARGET="${DATASET_TARGET}"
 
 function run_dbt() {
   local max_retries=5
@@ -31,6 +32,7 @@ function run_dbt() {
   fi
   if $DBT_COMMAND; then
     echo "dbt command succeeded"
+    mv "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results_1.json"
     return 0
   else
     echo "dbt command failed, attempting to dbt retry..."
@@ -50,6 +52,9 @@ function run_dbt() {
       if [[ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]]; then
         run_results_exists=true
         echo "run_results.json exists is ${run_results_exists}"
+        echo "Backing up a copy of run_results.json before retrying"
+        cp "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results_${attempt}.json"
+        echo
         if dbt retry; then
           echo "dbt retry succeeded"
           return 0
