@@ -2,74 +2,79 @@ version: 2
 default_channel: C01H895893K
 dags:
   - name: "bentham"
-    models: [
-      "model.mojap_derived_tables.nomis_dn__current_pop",
-      "model.mojap_derived_tables.nomis_dn__offender_location",
-      "model.mojap_derived_tables.nomis_dbt__offenders",
-      "model.mojap_derived_tables.nomis_dbt__offender_bookings"
-    ]
+    models:
+      [
+        "model.mojap_derived_tables.nomis_dn__current_pop",
+        "model.mojap_derived_tables.nomis_dn__offender_location",
+        "model.mojap_derived_tables.nomis_dbt__offenders",
+        "model.mojap_derived_tables.nomis_dbt__offender_bookings",
+      ]
 
   - name: "drugs_app"
-    models: [
-      "model.mojap_derived_tables.nomis_dn__finds",
-      "model.mojap_derived_tables.nomis_dn__finds_detail",
-      "model.mojap_derived_tables.nomis_dbt__offenders",
-      "model.mojap_derived_tables.nomis_dbt__offender_bookings",
-      "model.mojap_derived_tables.nomis_dbt__incident_case_parties"
-    ]
+    models:
+      [
+        "model.mojap_derived_tables.nomis_dn__finds",
+        "model.mojap_derived_tables.nomis_dn__finds_detail",
+        "model.mojap_derived_tables.nomis_dbt__offenders",
+        "model.mojap_derived_tables.nomis_dbt__offender_bookings",
+        "model.mojap_derived_tables.nomis_dbt__incident_case_parties",
+      ]
 
   - name: "prison-network"
-    models: [
-      "model.mojap_derived_tables.nomis_dn__assaults",
-      "model.mojap_derived_tables.nomis_dn__current_pop",
-      "model.mojap_derived_tables.nomis_dn__disorder",
-      "model.mojap_derived_tables.nomis_dn__finds",
-      "model.mojap_derived_tables.nomis_dn__involvements",
-      "model.mojap_derived_tables.nomis_dn__offender_location",
-      "model.mojap_derived_tables.nomis_dbt__offender_alerts",
-      "model.mojap_derived_tables.nomis_dbt__offender_bookings",
-      "model.mojap_derived_tables.nomis_dbt__offender_visits",
-      "model.mojap_derived_tables.nomis_dbt__offenders",
-      "model.mojap_derived_tables.nomis_dbt__agency_internal_locations",
-      "model.mojap_derived_tables.nomis_dbt__bed_assignment_histories",
-      "model.mojap_derived_tables.nomis_dbt__offender_charges",
-      "model.mojap_derived_tables.nomis_dbt__offender_profile_details",
-      "model.mojap_derived_tables.nomis_dbt__profile_codes"
-    ]
+    models:
+      [
+        "model.mojap_derived_tables.nomis_dn__assaults",
+        "model.mojap_derived_tables.nomis_dn__current_pop",
+        "model.mojap_derived_tables.nomis_dn__disorder",
+        "model.mojap_derived_tables.nomis_dn__finds",
+        "model.mojap_derived_tables.nomis_dn__involvements",
+        "model.mojap_derived_tables.nomis_dn__offender_location",
+        "model.mojap_derived_tables.nomis_dbt__offender_alerts",
+        "model.mojap_derived_tables.nomis_dbt__offender_bookings",
+        "model.mojap_derived_tables.nomis_dbt__offender_visits",
+        "model.mojap_derived_tables.nomis_dbt__offenders",
+        "model.mojap_derived_tables.nomis_dbt__agency_internal_locations",
+        "model.mojap_derived_tables.nomis_dbt__bed_assignment_histories",
+        "model.mojap_derived_tables.nomis_dbt__offender_charges",
+        "model.mojap_derived_tables.nomis_dbt__offender_profile_details",
+        "model.mojap_derived_tables.nomis_dbt__profile_codes",
+      ]
 
   - name: "sdt"
-    models: [
-      "model.mojap_derived_tables.nomis_dbt__incident_cases",
-      "model.mojap_derived_tables.nomis_dbt__offender_alerts",
-      "model.mojap_derived_tables.nomis_dbt__offender_iep_levels",
-      "model.mojap_derived_tables.nomis_dbt__offender_bookings",
-      "model.mojap_derived_tables.nomis_dbt__offenders",
-      "model.mojap_derived_tables.nomis_dn__current_pop",
-      "model.mojap_derived_tables.nomis_dn__assaults",
-      "model.mojap_derived_tables.nomis_dn__selfharm",
-      "model.mojap_derived_tables.nomis_dn__selfharm_detail",
-      "model.mojap_derived_tables.nomis_dn__disorder",
-      "model.mojap_derived_tables.nomis_dn__finds",
-      "model.mojap_derived_tables.nomis_dn__finds_detail",
-      "model.mojap_derived_tables.nomis_dn__offender_location",
-      "model.mojap_derived_tables.nomis_dn__involvements",
-      "model.mojap_derived_tables.nomis_dbt__questionnaire_questions",
-      "model.mojap_derived_tables.nomis_dbt__questionnaire_answers",
-      "model.mojap_derived_tables.nomis_dbt__incident_case_questions",
-      "model.mojap_derived_tables.nomis_dbt__incident_case_responses",
-      "model.mojap_derived_tables.nomis_dbt__bed_assignment_histories",
-      "model.mojap_derived_tables.nomis_dbt__agency_internal_locations",
-      "model.mojap_derived_tables.nomis_dbt__reference_codes",
-      "model.mojap_derived_tables.nomis_dbt__offender_visits",
-      "model.mojap_derived_tables.nomis_dbt__offender_sentence_terms"
-    ]
+    models:
+      [
+        "model.mojap_derived_tables.nomis_dbt__incident_cases",
+        "model.mojap_derived_tables.nomis_dbt__offender_alerts",
+        "model.mojap_derived_tables.nomis_dbt__offender_iep_levels",
+        "model.mojap_derived_tables.nomis_dbt__offender_bookings",
+        "model.mojap_derived_tables.nomis_dbt__offenders",
+        "model.mojap_derived_tables.nomis_dn__current_pop",
+        "model.mojap_derived_tables.nomis_dn__assaults",
+        "model.mojap_derived_tables.nomis_dn__selfharm",
+        "model.mojap_derived_tables.nomis_dn__selfharm_detail",
+        "model.mojap_derived_tables.nomis_dn__disorder",
+        "model.mojap_derived_tables.nomis_dn__finds",
+        "model.mojap_derived_tables.nomis_dn__finds_detail",
+        "model.mojap_derived_tables.nomis_dn__offender_location",
+        "model.mojap_derived_tables.nomis_dn__involvements",
+        "model.mojap_derived_tables.nomis_dbt__questionnaire_questions",
+        "model.mojap_derived_tables.nomis_dbt__questionnaire_answers",
+        "model.mojap_derived_tables.nomis_dbt__incident_case_questions",
+        "model.mojap_derived_tables.nomis_dbt__incident_case_responses",
+        "model.mojap_derived_tables.nomis_dbt__bed_assignment_histories",
+        "model.mojap_derived_tables.nomis_dbt__agency_internal_locations",
+        "model.mojap_derived_tables.nomis_dbt__reference_codes",
+        "model.mojap_derived_tables.nomis_dbt__offender_visits",
+        "model.mojap_derived_tables.nomis_dbt__offender_sentence_terms",
+      ]
 
   - name: "psog_reports"
-    models: [
-      "model.mojap_derived_tables.parole_board__cases_timeliness",
-      "model.mojap_derived_tables.parole_board__directions",
-      "model.mojap_derived_tables.parole_board__mca_timeliness",
-      "model.mojap_derived_tables.parole_board__oh_timeliness",
-      "model.mojap_derived_tables.parole_board__pre_mca",
-      "model.mojap_derived_tables.parole_board__releases_timeliness"
-    ]
+    models:
+      [
+        "model.mojap_derived_tables.parole_board__cases_timeliness",
+        "model.mojap_derived_tables.parole_board__directions",
+        "model.mojap_derived_tables.parole_board__mca_timeliness",
+        "model.mojap_derived_tables.parole_board__oh_timeliness",
+        "model.mojap_derived_tables.parole_board__pre_mca",
+        "model.mojap_derived_tables.parole_board__releases_timeliness",
+      ]
