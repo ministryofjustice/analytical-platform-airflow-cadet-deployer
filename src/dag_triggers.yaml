@@ -70,6 +70,6 @@ dags:
       "model.mojap_derived_tables.parole_board__directions",
       "model.mojap_derived_tables.parole_board__mca_timeliness",
       "model.mojap_derived_tables.parole_board__oh_timeliness",
-      "model.mojap_derived_tables.parole_board__pre_mca",``
+      "model.mojap_derived_tables.parole_board__pre_mca",
       "model.mojap_derived_tables.parole_board__releases_timeliness"
     ]
