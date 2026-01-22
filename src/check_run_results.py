@@ -229,7 +229,7 @@ def main() -> int:
         help=(
             "Path to a YAML file containing models for a dataset. Uses "
             "DATASET_TARGET to select the name. Defaults to "
-            "yaml cloned from repo if present."
+            "yaml cloned from repo if present. Mostly for local testing."
         ),
     )
     parser.add_argument(
