@@ -14,7 +14,9 @@ from typing import Iterable
 
 import boto3
 
-DEFAULT_UNIQUE_ID_YAML = Path("./create-a-derived-table/scripts/data/airflow-dag-trigger.yaml")
+DEFAULT_UNIQUE_ID_YAML = Path(
+    "./create-a-derived-table/scripts/data/airflow-dag-trigger.yaml"
+)
 
 
 def _normalize_unique_id(value: str) -> str:
@@ -40,7 +42,6 @@ def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
     content = path.read_text(encoding="utf-8")
     unique_ids: list[str] = []
     in_target_block = False
-    models_started = False
     base_indent: int | None = None
     models_indent: int | None = None
     in_dags_section = False
@@ -72,7 +73,6 @@ def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
             if in_dags_section and dags_indent is not None and indent <= dags_indent:
                 continue
             in_target_block = raw_name == dataset_target
-            models_started = False
             base_indent = indent
             models_indent = None
             continue
@@ -81,18 +81,15 @@ def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
             continue
 
         if re.search(r"\bmodels\s*:", line):
-            models_started = True
             models_indent = len(line) - len(line.lstrip())
             unique_ids.extend(_extract_quoted(line))
             continue
 
-        if models_started:
-            if models_indent is not None:
-                indent = len(line) - len(line.lstrip())
-                if indent <= models_indent and re.search(r"\S", line):
-                    models_started = False
-                    models_indent = None
-                    continue
+        if models_indent is not None:
+            indent = len(line) - len(line.lstrip())
+            if indent <= models_indent and re.search(r"\S", line):
+                models_indent = None
+                continue
             unique_ids.extend(_extract_quoted(line))
 
     return unique_ids
