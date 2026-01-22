@@ -14,6 +14,8 @@ from typing import Iterable
 
 import boto3
 
+DEFAULT_UNIQUE_ID_YAML = Path("./create-a-derived-table/scripts/data/airflow-dag-trigger.yaml")
+
 
 def _normalize_unique_id(value: str) -> str:
     value = value.strip().rstrip(",")
@@ -40,6 +42,9 @@ def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
     in_target_block = False
     models_started = False
     base_indent: int | None = None
+    models_indent: int | None = None
+    in_dags_section = False
+    dags_indent: int | None = None
 
     def _extract_quoted(line: str) -> list[str]:
         matches = re.findall(r"\"([^\"]+)\"|'([^']+)'", line)
@@ -49,15 +54,27 @@ def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
         return extracted
 
     for line in content.splitlines():
+        dags_match = re.match(r"^(\s*)dags\s*:\s*$", line)
+        if dags_match:
+            in_dags_section = True
+            dags_indent = len(dags_match.group(1))
+            continue
+
         name_match = re.match(r"^(\s*)-\s*name:\s*(.+)$", line)
         if name_match:
             indent = len(name_match.group(1))
             raw_name = _normalize_unique_id(name_match.group(2))
+            if in_dags_section and dags_indent is not None and indent <= dags_indent:
+                in_dags_section = False
+                dags_indent = None
             if in_target_block and base_indent is not None and indent <= base_indent:
                 break
+            if in_dags_section and dags_indent is not None and indent <= dags_indent:
+                continue
             in_target_block = raw_name == dataset_target
             models_started = False
             base_indent = indent
+            models_indent = None
             continue
 
         if not in_target_block:
@@ -65,10 +82,17 @@ def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
 
         if re.search(r"\bmodels\s*:", line):
             models_started = True
+            models_indent = len(line) - len(line.lstrip())
             unique_ids.extend(_extract_quoted(line))
             continue
 
         if models_started:
+            if models_indent is not None:
+                indent = len(line) - len(line.lstrip())
+                if indent <= models_indent and re.search(r"\S", line):
+                    models_started = False
+                    models_indent = None
+                    continue
             unique_ids.extend(_extract_quoted(line))
 
     return unique_ids
@@ -95,6 +119,8 @@ def _download_run_results_from_s3(
             if not key:
                 continue
             if re.search(r"run_results_\d+\.json$", key):
+                keys.append(key)
+            elif key.endswith("run_results.json"):
                 keys.append(key)
 
     if not keys:
@@ -202,7 +228,8 @@ def main() -> int:
         type=Path,
         help=(
             "Path to a YAML file containing models for a dataset. Uses "
-            "DATASET_TARGET to select the name."
+            "DATASET_TARGET to select the name. Defaults to "
+            "yaml cloned from repo if present."
         ),
     )
     parser.add_argument(
@@ -220,11 +247,15 @@ def main() -> int:
     unique_ids: list[str] = []
     if args.unique_ids:
         unique_ids.extend(_parse_unique_ids(args.unique_ids))
-    if args.unique_id_yaml:
+    yaml_path = args.unique_id_yaml
+    if yaml_path is None and DEFAULT_UNIQUE_ID_YAML.exists():
+        yaml_path = DEFAULT_UNIQUE_ID_YAML
+        logging.info("Using default unique_id YAML path: %s", yaml_path)
+    if yaml_path:
         dataset_target = os.environ.get("DATASET_TARGET")
         if not dataset_target:
             raise ValueError("DATASET_TARGET is required when using --unique-id-yaml.")
-        unique_ids.extend(_parse_unique_ids_yaml(args.unique_id_yaml, dataset_target))
+        unique_ids.extend(_parse_unique_ids_yaml(yaml_path, dataset_target))
     if not unique_ids:
         raise ValueError(
             "At least one unique_id is required via --unique-id or --unique-id-yaml."
