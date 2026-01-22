@@ -15,4 +15,6 @@ jobs:
       contents: read
       packages: read
       statuses: write
+    env:
+      VALIDATE_PYTHON_RUFF_FORMAT: true
     uses: ministryofjustice/analytical-platform-github-actions/.github/workflows/reusable-super-linter.yml@72a6b41dd6f2ccce15aa70b0e42178f6f5583018 # v5.3.0
