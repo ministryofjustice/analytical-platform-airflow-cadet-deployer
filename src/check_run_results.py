@@ -251,6 +251,8 @@ def main() -> int:
     if yaml_path is None and DEFAULT_UNIQUE_ID_YAML.exists():
         yaml_path = DEFAULT_UNIQUE_ID_YAML
         logging.info("Using default unique_id YAML path: %s", yaml_path)
+    if not DEFAULT_UNIQUE_ID_YAML.exists():
+        logging.info("YAML not found at default path: %s", DEFAULT_UNIQUE_ID_YAML)
     if yaml_path:
         dataset_target = os.environ.get("DATASET_TARGET")
         if not dataset_target:
