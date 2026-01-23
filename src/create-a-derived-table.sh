@@ -135,7 +135,7 @@ function import_run_artefacts() {
 echo "Creating virtual environment and installing dependencies"
 cd "${REPOSITORY_PATH}"
 
-uv venv
+uv venv --python 3.12
 
 # shellcheck disable=SC1091
 source .venv/bin/activate
