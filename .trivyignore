@@ -2,3 +2,5 @@
 AVD-DS-0002
 # Health check
 AVD-DS-0026
+# Temp skip for wheel vulnerability - to be fixed in future update
+CVE-2026-24049 exp:2026-02-06
