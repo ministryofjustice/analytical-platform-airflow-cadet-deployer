@@ -38,6 +38,22 @@ def _parse_unique_ids(values: Iterable[str]) -> list[str]:
     return unique_ids
 
 
+def _apply_env_to_model_id(unique_id: str, deploy_env: str | None) -> str:
+    if not deploy_env or deploy_env == "prod":
+        return unique_id
+
+    match = re.match(r"^model\.([^.]+)\.([^.]+)$", unique_id)
+    if not match:
+        return unique_id
+
+    database_name, table_name = match.groups()
+    env_suffix = f"_{deploy_env}_dbt"
+    if database_name.endswith(env_suffix):
+        return unique_id
+
+    return f"model.{database_name}{env_suffix}.{table_name}"
+
+
 def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
     content = path.read_text(encoding="utf-8")
     unique_ids: list[str] = []
@@ -268,6 +284,14 @@ def main() -> int:
         deploy_env,
         workflow_name,
     )
+
+    if deploy_env and deploy_env != "prod":
+        unique_ids = [_apply_env_to_model_id(uid, deploy_env) for uid in unique_ids]
+        logging.info(
+            "Adjusted %d unique_id(s) for deploy_env=%s",
+            len(unique_ids),
+            deploy_env,
+        )
 
     logging.info("Beginning run_results validation")
     assert_success(
