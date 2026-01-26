@@ -232,8 +232,7 @@ def main() -> int:
         dest="unique_ids",
         nargs="+",
         help=(
-            "Unique ID(s) to check. You can pass multiple values or a comma-separated "
-            "list."
+            "Unique ID(s) to check. You can pass multiple values or a comma-separated list."
         ),
     )
     parser.add_argument(
