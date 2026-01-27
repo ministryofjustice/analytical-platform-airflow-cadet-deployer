@@ -50,7 +50,7 @@ def _apply_env_to_model_id(unique_id: str, deploy_env: str | None) -> str:
     env_suffix = f"_{deploy_env}_dbt"
     if deploy_env == "prod":
         return unique_id
-    elif "__" not in table_name:
+    if "__" not in table_name:
         return unique_id
 
     base_name, rest = table_name.split("__", 1)
