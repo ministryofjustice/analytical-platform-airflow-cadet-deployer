@@ -48,10 +48,13 @@ def _apply_env_to_model_id(unique_id: str, deploy_env: str | None) -> str:
 
     database_name, table_name = match.groups()
     env_suffix = f"_{deploy_env}_dbt"
-    if database_name.endswith(env_suffix):
+    if deploy_env == "prod":
+        return unique_id
+    if "__" not in table_name:
         return unique_id
 
-    return f"model.{database_name}{env_suffix}.{table_name}"
+    base_name, rest = table_name.split("__", 1)
+    return f"model.{database_name}.{base_name}{env_suffix}__{rest}"
 
 
 def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
