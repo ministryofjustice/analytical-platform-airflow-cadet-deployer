@@ -5,6 +5,11 @@
       "resolved": "ghcr.io/devcontainers/features/docker-in-docker@sha256:7f32d985aac6929b4f37cf8a0bdb9196473e9e192281a3d708207a70633f83df",
       "integrity": "sha256:7f32d985aac6929b4f37cf8a0bdb9196473e9e192281a3d708207a70633f83df"
     },
+    "ghcr.io/devcontainers/features/docker-in-docker:": {
+      "version": "2.14.0",
+      "resolved": "ghcr.io/devcontainers/features/docker-in-docker@sha256:445e84b0c213225bfdae977a72b4125f65e38eadcd49616dae04f1af24aa122d",
+      "integrity": "sha256:445e84b0c213225bfdae977a72b4125f65e38eadcd49616dae04f1af24aa122d"
+    },
     "ghcr.io/ministryofjustice/devcontainer-feature/aws:1": {
       "version": "1.1.0",
       "resolved": "ghcr.io/ministryofjustice/devcontainer-feature/aws@sha256:64240f48a66e28fc065d58d2c3aa75319106ec4293b0a0736402290317b256d5",
