@@ -169,7 +169,6 @@ def assert_success(
 ) -> None:
     """Assert that all unique_ids have a final status of 'success'."""
     unique_ids = list(unique_ids)
-    success_map = {unique_id: False for unique_id in unique_ids}
     last_status: dict[str, str] = {}
 
     if not deploy_env or not workflow_name:
@@ -182,14 +181,9 @@ def assert_success(
         statuses = _index_statuses(run_results)
         for unique_id in unique_ids:
             status = statuses.get(unique_id)
-            if status is None:
-                continue
-            if last_status.get(unique_id) == "success":
-                continue
-            else:
+            # Only update if found and not already succeeded
+            if status and last_status.get(unique_id) != "success":
                 last_status[unique_id] = status
-                if status == "success":
-                    success_map[unique_id] = True
 
     missing: list[str] = []
     failed: list[tuple[str, str]] = []
@@ -199,11 +193,11 @@ def assert_success(
         if status is None:
             logging.error("%s -> not found", unique_id)
             missing.append(unique_id)
-            continue
-
-        logging.info("%s -> %s", unique_id, status)
-        if not success_map[unique_id]:
+        elif status != "success":
+            logging.info("%s -> %s", unique_id, status)
             failed.append((unique_id, status))
+        else:
+            logging.info("%s -> %s", unique_id, status)
 
     if missing or failed:
         parts: list[str] = []
