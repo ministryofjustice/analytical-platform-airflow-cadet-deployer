@@ -37,26 +37,6 @@ def _parse_unique_ids(values: Iterable[str]) -> list[str]:
                 unique_ids.append(item)
     return unique_ids
 
-
-def _apply_env_to_model_id(unique_id: str, deploy_env: str | None) -> str:
-    if not deploy_env or deploy_env == "prod":
-        return unique_id
-
-    match = re.match(r"^model\.([^.]+)\.([^.]+)$", unique_id)
-    if not match:
-        return unique_id
-
-    database_name, table_name = match.groups()
-    env_suffix = f"_{deploy_env}_dbt"
-    if deploy_env == "prod":
-        return unique_id
-    if "__" not in table_name:
-        return unique_id
-
-    base_name, rest = table_name.split("__", 1)
-    return f"model.{database_name}.{base_name}{env_suffix}__{rest}"
-
-
 def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
     content = path.read_text(encoding="utf-8")
     unique_ids: list[str] = []
@@ -114,9 +94,21 @@ def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
     return unique_ids
 
 
-def _load_run_results(path: Path) -> dict:
+def _load_run_results(path: Path) -> tuple[dict, str]:
     with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+        data = json.load(handle)
+
+    # Extract all completed_at values from timing entries
+    completed_times = [
+        t["completed_at"]
+        for result in data["results"]
+        for t in result.get("timing", [])
+        if "completed_at" in t
+    ]
+
+    # Find the maximum (ISO 8601 strings sort correctly)
+    max_completed = max(completed_times) if completed_times else ""
+    return data, max_completed
 
 
 def _download_run_results_from_s3(
@@ -144,15 +136,19 @@ def _download_run_results_from_s3(
             "No run_results_{n}.json files found in S3 target prefix."
         )
 
-    run_results: list[dict] = []
+    run_results_with_timestamps: list[tuple[dict, str]] = []
     with tempfile.TemporaryDirectory() as tmp_dir:
         for key in sorted(keys):
             dest = Path(tmp_dir) / Path(key).name
             logging.info("Downloading s3://%s/%s", bucket, key)
             client.download_file(bucket, key, str(dest))
-            run_results.append(_load_run_results(dest))
+            data, max_completed = _load_run_results(dest)
+            run_results_with_timestamps.append((data, max_completed))
 
-    return run_results
+    # Sort by max_completed timestamp (ISO 8601 format sorts correctly as strings)
+    run_results_with_timestamps.sort(key=lambda x: x[1])
+
+    return [data for data, _ in run_results_with_timestamps]
 
 
 def _index_statuses(run_results: dict) -> dict[str, str]:
@@ -187,7 +183,10 @@ def assert_success(
             status = statuses.get(unique_id)
             if status is None:
                 continue
-            last_status[unique_id] = status
+            elif last_status.get(unique_id) == "success":
+                continue
+            else:
+                last_status[unique_id] = status
             if status == "success":
                 success_map[unique_id] = True
 
@@ -231,7 +230,7 @@ def main() -> int:
         )
     )
     parser.add_argument(
-        "--unique-id",
+        "--unique-ids",
         dest="unique_ids",
         nargs="+",
         help=(
@@ -288,7 +287,6 @@ def main() -> int:
     )
 
     if deploy_env and deploy_env != "prod":
-        unique_ids = [_apply_env_to_model_id(uid, deploy_env) for uid in unique_ids]
         logging.info(
             "Adjusted %d unique_id(s) for deploy_env=%s",
             len(unique_ids),
