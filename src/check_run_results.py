@@ -37,6 +37,7 @@ def _parse_unique_ids(values: Iterable[str]) -> list[str]:
                 unique_ids.append(item)
     return unique_ids
 
+
 def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
     content = path.read_text(encoding="utf-8")
     unique_ids: list[str] = []
@@ -183,12 +184,12 @@ def assert_success(
             status = statuses.get(unique_id)
             if status is None:
                 continue
-            elif last_status.get(unique_id) == "success":
+            if last_status.get(unique_id) == "success":
                 continue
             else:
                 last_status[unique_id] = status
-            if status == "success":
-                success_map[unique_id] = True
+                if status == "success":
+                    success_map[unique_id] = True
 
     missing: list[str] = []
     failed: list[tuple[str, str]] = []
