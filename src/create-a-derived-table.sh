@@ -20,6 +20,7 @@ export THREAD_COUNT="${THREAD_COUNT:-"default"}"
 function run_dbt() {
   local max_retries=5
   local attempt=2
+  local previous_attempt=1
   local run_results_exists=false
 
   # Disable immediate exit on error for the loop
@@ -50,6 +51,7 @@ function run_dbt() {
       if [[ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]]; then
         run_results_exists=true
         echo "run_results.json exists is ${run_results_exists}"
+        cp "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results_${previous_attempt}.json"
         if dbt retry; then
           echo "dbt retry succeeded"
           return 0
@@ -62,6 +64,7 @@ function run_dbt() {
         fi
       fi
       ((attempt++))
+      ((previous_attempt++))
       sleep 10 # Wait before retrying
     fi
   done
