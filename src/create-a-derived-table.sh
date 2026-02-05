@@ -16,7 +16,8 @@ export WORKFLOW_NAME="${WORKFLOW_NAME}"
 export EM_REMOVE_HISTORIC="${EM_REMOVE_HISTORIC:-false}"
 export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 export THREAD_COUNT="${THREAD_COUNT:-"default"}"
-export "DBT_${DEPLOY_ENV^^}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
+DEPLOY_ENV_UPPER=$(echo "${DEPLOY_ENV}" | tr '[:lower:]' '[:upper:]')
+export "DBT_${DEPLOY_ENV_UPPER}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
 
 function run_dbt() {
   local max_retries=5
