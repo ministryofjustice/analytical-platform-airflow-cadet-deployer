@@ -18,7 +18,7 @@ export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 export THREAD_COUNT="${THREAD_COUNT:-"default"}"
 
 function run_dbt() {
-  local max_retries=5
+  local max_retries=3
   local attempt=2
   local previous_attempt=1
   local run_results_exists=false
