@@ -18,7 +18,6 @@ export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 export THREAD_COUNT="${THREAD_COUNT:-"default"}"
 export "DBT_${DEPLOY_ENV^^}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
 
-
 function run_dbt() {
   local max_retries=5
   local attempt=2
