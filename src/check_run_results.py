@@ -18,6 +18,10 @@ DEFAULT_UNIQUE_ID_YAML = Path(
     "./create-a-derived-table/scripts/data/airflow-dag-trigger.yaml"
 )
 
+# dbt models finish with 'success'; tests finish with 'pass' or 'warn'.
+# All three are considered acceptable (non-failure) statuses.
+_ACCEPTABLE_STATUSES = frozenset({"success", "pass", "warn"})
+
 
 def _normalize_unique_id(value: str) -> str:
     value = value.strip().rstrip(",")
@@ -194,21 +198,64 @@ def assert_success(
             logging.error("%s -> not found", unique_id)
             missing.append(unique_id)
         elif status != "success":
-            logging.info("%s -> %s", unique_id, status)
+            logging.error("%s -> %s", unique_id, status)
             failed.append((unique_id, status))
-        else:
-            logging.info("%s -> %s", unique_id, status)
 
     if missing or failed:
         parts: list[str] = []
         if missing:
-            parts.append(f"Missing unique_id(s): {', '.join(missing)}")
+            parts.append(f"{len(missing)} missing")
         if failed:
-            failed_msg = ", ".join(f"{uid}={status}" for uid, status in failed)
-            parts.append(f"Non-success status(es): {failed_msg}")
-        raise RuntimeError("; ".join(parts))
+            parts.append(f"{len(failed)} non-success")
+        raise RuntimeError(
+            f"{', '.join(parts)} out of {len(unique_ids)} unique_id(s) "
+            f"(see ERROR lines above)."
+        )
 
     print(f"All {len(unique_ids)} unique_id(s) finished with status=success.")
+
+
+def assert_all_models_tests_success(
+    deploy_env: str | None = None,
+    workflow_name: str | None = None,
+) -> None:
+    """Assert that every model and test node in run_results finished with status 'success'."""
+    if not deploy_env or not workflow_name:
+        raise ValueError(
+            "DEPLOY_ENV and WORKFLOW_NAME are required to locate run_results files."
+        )
+    run_results_list = _download_run_results_from_s3(deploy_env, workflow_name)
+
+    # Build the final status for each model/test node across all run_results
+    # files (later files override earlier ones, matching retry semantics).
+    last_status: dict[str, str] = {}
+    for run_results in run_results_list:
+        for result in run_results.get("results", []):
+            unique_id = result.get("unique_id", "")
+            status = result.get("status")
+            if unique_id.startswith(("model.", "test.")) and status:
+                if last_status.get(unique_id) not in _ACCEPTABLE_STATUSES:
+                    last_status[unique_id] = status
+
+    if not last_status:
+        raise RuntimeError(
+            "No model or test nodes found in run_results. "
+            "Check DEPLOY_ENV and WORKFLOW_NAME are correct."
+        )
+
+    failed: list[tuple[str, str]] = []
+    for unique_id, status in sorted(last_status.items()):
+        if status not in _ACCEPTABLE_STATUSES:
+            logging.error("%s -> %s", unique_id, status)
+            failed.append((unique_id, status))
+
+    if failed:
+        raise RuntimeError(
+            f"{len(failed)} of {len(last_status)} model/test node(s) "
+            f"did not finish successfully (see ERROR lines above)."
+        )
+
+    print(f"All {len(last_status)} model/test node(s) finished successfully.")
 
 
 def main() -> int:
@@ -217,6 +264,9 @@ def main() -> int:
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(message)s",
     )
+    logging.getLogger("boto3").setLevel(logging.WARNING)
+    logging.getLogger("botocore").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.info("Starting check_run_results")
     parser = argparse.ArgumentParser(
         description=(
@@ -242,6 +292,15 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--check-all-nodes",
+        action="store_true",
+        default=False,
+        help=(
+            "Instead of checking specific unique_ids, verify that every "
+            "model and test node in run_results finished with status=success."
+        ),
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         help="Logging level (default: INFO)",
@@ -252,6 +311,23 @@ def main() -> int:
 
     logging.getLogger().setLevel(args.log_level.upper())
     logging.info("Configured log level: %s", args.log_level.upper())
+
+    deploy_env = os.environ.get("DEPLOY_ENV")
+    workflow_name = os.environ.get("WORKFLOW_NAME")
+    logging.info(
+        "Loaded env DEPLOY_ENV=%s WORKFLOW_NAME=%s",
+        deploy_env,
+        workflow_name,
+    )
+
+    if args.check_all_nodes:
+        logging.info("CHECK_ALL_NODES is enabled - validating all model and test nodes")
+        assert_all_models_tests_success(
+            deploy_env=deploy_env,
+            workflow_name=workflow_name,
+        )
+        logging.info("Validation completed")
+        return 0
 
     unique_ids: list[str] = []
     if args.unique_ids:
@@ -272,14 +348,6 @@ def main() -> int:
             "At least one unique_id is required via --unique-id or --unique-id-yaml."
         )
     logging.info("Resolved %d unique_id(s)", len(unique_ids))
-
-    deploy_env = os.environ.get("DEPLOY_ENV")
-    workflow_name = os.environ.get("WORKFLOW_NAME")
-    logging.info(
-        "Loaded env DEPLOY_ENV=%s WORKFLOW_NAME=%s",
-        deploy_env,
-        workflow_name,
-    )
 
     if deploy_env and deploy_env != "prod":
         logging.info(

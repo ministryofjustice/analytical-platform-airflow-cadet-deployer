@@ -20,12 +20,24 @@ echo "=== Running clone-create-a-derived-table.sh ==="
 
 echo "=== Am I running a dataset check? ${IS_DATASET_CHECK} ==="
 if [ "${IS_DATASET_CHECK}" = "True" ]; then
-  if uv run check_run_results.py; then
-    echo "Dataset Check Passed!"
-    exit 0
+  if [ -z "${DATASET_TARGET}" ]; then
+    echo "=== Running dataset check for all nodes ==="
+    if uv run check_run_results.py --check-all-nodes; then
+      echo "Dataset Check Passed!"
+      exit 0
+    else
+      echo "Dataset Check Failed! See Logs for Details"
+      exit 1
+    fi
   else
-    echo "Dataset Check Failed! See Logs for Details"
-    exit 1
+    echo "=== Running dataset check for target: ${DATASET_TARGET} ==="
+    if uv run check_run_results.py; then
+      echo "Dataset Check Passed!"
+      exit 0
+    else
+      echo "Dataset Check Failed! See Logs for Details"
+      exit 1
+    fi
   fi
 fi
 
