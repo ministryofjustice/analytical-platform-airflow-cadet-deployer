@@ -255,9 +255,7 @@ def assert_all_models_tests_success(
             f"did not finish successfully (see ERROR lines above)."
         )
 
-    print(
-        f"All {len(last_status)} model/test node(s) finished successfully."
-    )
+    print(f"All {len(last_status)} model/test node(s) finished successfully.")
 
 
 def main() -> int:
@@ -323,9 +321,7 @@ def main() -> int:
     )
 
     if args.check_all_nodes:
-        logging.info(
-            "CHECK_ALL_NODES is enabled – validating all model and test nodes"
-        )
+        logging.info("CHECK_ALL_NODES is enabled - validating all model and test nodes")
         assert_all_models_tests_success(
             deploy_env=deploy_env,
             workflow_name=workflow_name,
