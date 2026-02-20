@@ -169,8 +169,8 @@ fi
 echo "Generating models"
 python "${REPOSITORY_PATH}/scripts/generate_models.py" model_templates/ ./ --target "${DEPLOY_ENV}"
 
-echo "Running dbt debug"
-dbt debug
+echo "Running dbt debug with target ${DEPLOY_ENV}"
+dbt debug --target "${DEPLOY_ENV}"
 
 echo "Running dbt clean"
 dbt clean
