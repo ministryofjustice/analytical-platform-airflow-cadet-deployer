@@ -139,18 +139,70 @@ class TestParseUniqueIdsYaml:
 
 
 # ===========================================================================
-# _load_run_results
+# Schema-compliant fixture helpers (dbt run_results v6)
 # ===========================================================================
+def _make_timing_entry(
+    name: str = "execute",
+    started_at: str | None = "2024-01-01T09:59:00Z",
+    completed_at: str | None = "2024-01-01T10:00:00Z",
+) -> dict:
+    return {"name": name, "started_at": started_at, "completed_at": completed_at}
+
+
+def _make_default_timing() -> list[dict]:
+    return [
+        _make_timing_entry(name="compile", started_at="2024-01-01T09:59:00Z", completed_at="2024-01-01T09:59:01Z"),
+        _make_timing_entry(name="execute", started_at="2024-01-01T09:59:01Z", completed_at="2024-01-01T10:00:00Z"),
+    ]
+
+
+def _make_result(
+    unique_id: str = "model.foo",
+    status: str = "success",
+    timing: list[dict] | None = None,
+    thread_id: str = "Thread-1",
+    execution_time: float = 1.23,
+    adapter_response: dict | None = None,
+    message: str | None = "OK",
+    failures: int | None = None,
+    compiled: bool | None = True,
+    compiled_code: str | None = "SELECT 1",
+    relation_name: str | None = "schema.table",
+) -> dict:
+    return {
+        "status": status,
+        "timing": timing if timing is not None else _make_default_timing(),
+        "thread_id": thread_id,
+        "execution_time": execution_time,
+        "adapter_response": adapter_response or {"_message": "OK"},
+        "message": message,
+        "failures": failures,
+        "unique_id": unique_id,
+        "compiled": compiled,
+        "compiled_code": compiled_code,
+        "relation_name": relation_name,
+    }
+
+
 def _make_run_results(results: list[dict]) -> dict:
-    return {"results": results}
+    return {
+        "metadata": {
+            "dbt_schema_version": "https://schemas.getdbt.com/dbt/run-results/v6.json",
+            "dbt_version": "1.10.0",
+            "generated_at": "2024-01-01T10:00:00Z",
+            "invocation_id": "test-invocation-id",
+        },
+        "results": results,
+        "elapsed_time": 42.0,
+    }
 
 
 def _result_with_timing(*completed_ats: str) -> dict:
-    return {
-        "unique_id": "model.foo",
-        "status": "success",
-        "timing": [{"completed_at": t} for t in completed_ats],
-    }
+    timing: list[dict] = []
+    for t in completed_ats:
+        timing.append(_make_timing_entry(name="compile", completed_at=t))
+        timing.append(_make_timing_entry(name="execute", completed_at=t))
+    return _make_result(timing=timing)
 
 
 class TestLoadRunResults:
@@ -165,7 +217,7 @@ class TestLoadRunResults:
         assert max_ts == "2024-01-01T12:00:00Z"
 
     def test_no_timing_entries_returns_empty_string(self, tmp_path):
-        data = _make_run_results([{"unique_id": "model.foo", "status": "success", "timing": []}])
+        data = _make_run_results([_make_result(timing=[])])
         p = tmp_path / "run_results.json"
         p.write_text(json.dumps(data), encoding="utf-8")
         _, max_ts = crr._load_run_results(p)
@@ -190,27 +242,29 @@ class TestLoadRunResults:
 # ===========================================================================
 class TestIndexStatuses:
     def test_normal_mapping(self):
-        run_results = {
-            "results": [
-                {"unique_id": "model.foo", "status": "success"},
-                {"unique_id": "test.bar", "status": "pass"},
-            ]
-        }
+        run_results = _make_run_results([
+            _make_result(unique_id="model.foo", status="success"),
+            _make_result(unique_id="test.bar", status="pass"),
+        ])
         assert crr._index_statuses(run_results) == {
             "model.foo": "success",
             "test.bar": "pass",
         }
 
     def test_missing_unique_id_skipped(self):
-        run_results = {"results": [{"status": "success"}]}
+        result = _make_result()
+        del result["unique_id"]
+        run_results = _make_run_results([result])
         assert crr._index_statuses(run_results) == {}
 
     def test_missing_status_skipped(self):
-        run_results = {"results": [{"unique_id": "model.foo"}]}
+        result = _make_result()
+        del result["status"]
+        run_results = _make_run_results([result])
         assert crr._index_statuses(run_results) == {}
 
     def test_empty_results(self):
-        assert crr._index_statuses({"results": []}) == {}
+        assert crr._index_statuses(_make_run_results([])) == {}
 
     def test_missing_results_key(self):
         assert crr._index_statuses({}) == {}
@@ -221,20 +275,28 @@ class TestIndexStatuses:
 # ===========================================================================
 def _make_s3_mock(keys: list[str], result_data: list[dict] | None = None):
     """Build a mock boto3 S3 client that returns *keys* from the paginator
-    and writes *result_data[i]* to disk when download_file is called."""
+    and writes *result_data[i]* to disk when download_file is called.
+
+    The paginator filters keys by the Prefix kwarg, simulating a real
+    S3 bucket that may contain objects for multiple environments."""
     if result_data is None:
         result_data = [_make_run_results([_result_with_timing("2024-01-01T10:00:00Z")])] * len(keys)
+
+    data_by_key = dict(zip(keys, result_data))
 
     client = MagicMock()
     paginator = MagicMock()
     client.get_paginator.return_value = paginator
-    paginator.paginate.return_value = [
-        {"Contents": [{"Key": k} for k in keys]}
-    ]
+
+    def fake_paginate(**kwargs):
+        prefix = kwargs.get("Prefix", "")
+        matched = [k for k in keys if k.startswith(prefix)]
+        return [{"Contents": [{"Key": k} for k in matched]}]
+
+    paginator.paginate.side_effect = fake_paginate
 
     def fake_download(bucket, key, dest):
-        idx = keys.index(key)
-        Path(dest).write_text(json.dumps(result_data[idx]), encoding="utf-8")
+        Path(dest).write_text(json.dumps(data_by_key[key]), encoding="utf-8")
 
     client.download_file.side_effect = fake_download
     return client
@@ -280,18 +342,44 @@ class TestDownloadRunResultsFromS3:
         assert results[0]["results"][0]["timing"][0]["completed_at"] == "2024-01-01T08:00:00Z"
         assert results[1]["results"][0]["timing"][0]["completed_at"] == "2024-01-01T12:00:00Z"
 
+    def test_only_matching_env_keys_returned(self):
+        """A single bucket holds files for multiple envs; only the requested env is fetched."""
+        dev_result = _make_run_results([_make_result(unique_id="model.dev_only", status="success")])
+        prod_result = _make_run_results([_make_result(unique_id="model.prod_only", status="error")])
+        keys = [
+            "dev/run_artefacts/wf/latest/target/run_results_1.json",
+            "prod/run_artefacts/wf/latest/target/run_results_1.json",
+        ]
+        mock_client = _make_s3_mock(keys, [dev_result, prod_result])
+        with patch("boto3.client", return_value=mock_client):
+            results = crr._download_run_results_from_s3("dev", "wf")
+        assert len(results) == 1
+        assert results[0]["results"][0]["unique_id"] == "model.dev_only"
+
+    def test_only_matching_workflow_keys_returned(self):
+        """Multiple workflows exist under the same env; only the requested workflow is fetched."""
+        wf_a = _make_run_results([_make_result(unique_id="model.wf_a")])
+        wf_b = _make_run_results([_make_result(unique_id="model.wf_b")])
+        keys = [
+            "dev/run_artefacts/wf_a/latest/target/run_results_1.json",
+            "dev/run_artefacts/wf_b/latest/target/run_results_1.json",
+        ]
+        mock_client = _make_s3_mock(keys, [wf_a, wf_b])
+        with patch("boto3.client", return_value=mock_client):
+            results = crr._download_run_results_from_s3("dev", "wf_a")
+        assert len(results) == 1
+        assert results[0]["results"][0]["unique_id"] == "model.wf_a"
+
 
 # ===========================================================================
 # assert_success
 # ===========================================================================
 def _single_run_results(statuses: dict[str, str]) -> list[dict]:
     return [
-        {
-            "results": [
-                {"unique_id": uid, "status": st, "timing": [{"completed_at": "2024-01-01T10:00:00Z"}]}
-                for uid, st in statuses.items()
-            ]
-        }
+        _make_run_results([
+            _make_result(unique_id=uid, status=st)
+            for uid, st in statuses.items()
+        ])
     ]
 
 
@@ -327,8 +415,14 @@ class TestAssertSuccess:
 
     def test_retry_semantics_later_run_can_fix_failure(self, capsys):
         """A second run_results file with success overrides an earlier failure."""
-        run1 = {"results": [{"unique_id": "model.foo", "status": "error", "timing": [{"completed_at": "2024-01-01T09:00:00Z"}]}]}
-        run2 = {"results": [{"unique_id": "model.foo", "status": "success", "timing": [{"completed_at": "2024-01-01T10:00:00Z"}]}]}
+        run1 = _make_run_results([_make_result(status="error", timing=[
+            _make_timing_entry(name="compile", completed_at="2024-01-01T09:00:00Z"),
+            _make_timing_entry(name="execute", completed_at="2024-01-01T09:00:00Z"),
+        ])])
+        run2 = _make_run_results([_make_result(status="success", timing=[
+            _make_timing_entry(name="compile", completed_at="2024-01-01T10:00:00Z"),
+            _make_timing_entry(name="execute", completed_at="2024-01-01T10:00:00Z"),
+        ])])
         with patch.object(crr, "_download_run_results_from_s3", return_value=[run1, run2]):
             crr.assert_success(["model.foo"], deploy_env="dev", workflow_name="wf")
         assert "success" in capsys.readouterr().out
@@ -338,7 +432,12 @@ class TestAssertSuccess:
 # assert_all_models_tests_success
 # ===========================================================================
 def _run_results_from_statuses(entries: list[tuple[str, str]]) -> list[dict]:
-    return [{"results": [{"unique_id": uid, "status": st} for uid, st in entries]}]
+    return [
+        _make_run_results([
+            _make_result(unique_id=uid, status=st)
+            for uid, st in entries
+        ])
+    ]
 
 
 class TestAssertAllModelsTestsSuccess:
@@ -380,8 +479,8 @@ class TestAssertAllModelsTestsSuccess:
 
     def test_retry_semantics_acceptable_status_not_overridden(self, capsys):
         """Once a node reaches an acceptable status it should not be overridden by a later failure."""
-        run1 = {"results": [{"unique_id": "model.foo", "status": "success"}]}
-        run2 = {"results": [{"unique_id": "model.foo", "status": "error"}]}
+        run1 = _make_run_results([_make_result(status="success")])
+        run2 = _make_run_results([_make_result(status="error")])
         with patch.object(crr, "_download_run_results_from_s3", return_value=[run1, run2]):
             crr.assert_all_models_tests_success(deploy_env="dev", workflow_name="wf")
         assert "successfully" in capsys.readouterr().out
