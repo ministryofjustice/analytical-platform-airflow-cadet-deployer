@@ -18,6 +18,7 @@ export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 export THREAD_COUNT="${THREAD_COUNT:-"default"}"
 DEPLOY_ENV_UPPER=$(echo "${DEPLOY_ENV}" | tr '[:lower:]' '[:upper:]')
 export "DBT_${DEPLOY_ENV_UPPER}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
+export DBT_PROFILE="${DBT_PROFILE:-"mojap"}"
 
 function run_dbt() {
   local max_retries=3
