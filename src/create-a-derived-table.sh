@@ -15,7 +15,8 @@ export STATE_MODE="${STATE_MODE:-false}"
 export WORKFLOW_NAME="${WORKFLOW_NAME}"
 export EM_REMOVE_HISTORIC="${EM_REMOVE_HISTORIC:-false}"
 export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
-export THREAD_COUNT="${THREAD_COUNT:-"default"}"
+export THREAD_COUNT="${THREAD_COUNT:-}"
+export VARS="${VARS:-}"
 DEPLOY_ENV_UPPER=$(echo "${DEPLOY_ENV}" | tr '[:lower:]' '[:upper:]')
 export "DBT_${DEPLOY_ENV_UPPER}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
 export DBT_PROFILE="${DBT_PROFILE:-"mojap"}"
@@ -28,10 +29,12 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
-  if [ "${THREAD_COUNT}" = "default" ]; then
-    local DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV}"
-  else
-    local DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV} --threads ${THREAD_COUNT}"
+  local DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV}"
+  if [ -n "${THREAD_COUNT}" ]; then
+    local DBT_COMMAND="${DBT_COMMAND} --threads ${THREAD_COUNT}"
+  fi
+  if [ -n "${VARS}" ]; then
+    DBT_COMMAND="${DBT_COMMAND} --vars ${VARS}"
   fi
   if $DBT_COMMAND; then
     echo "dbt command succeeded"
@@ -179,7 +182,7 @@ dbt clean
 echo "Running dbt deps"
 dbt deps
 
-echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ] and thread count [ ${THREAD_COUNT} ]"
+echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ] and thread count [ ${THREAD_COUNT} ] and vars [ ${VARS:-none} ]"
 
 if $STATE_MODE; then
   import_run_artefacts
