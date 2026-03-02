@@ -18,22 +18,19 @@ export EM_REMOVE_LIVE="${EM_REMOVE_LIVE:-false}"
 export THREAD_COUNT="${THREAD_COUNT:-"default"}"
 DEPLOY_ENV_UPPER=$(echo "${DEPLOY_ENV}" | tr '[:lower:]' '[:upper:]')
 export "DBT_${DEPLOY_ENV_UPPER}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
+# Export SDP secrets
+export SDP_DEV_POOL_CLIENT_ID="${SECRET_SDP_ID_DEV:-}"
+export SDP_DEV_POOL_CLIENT_SECRET="${SECRET_SDP_SC_DEV:-}"
+export SDP_TENANT_ID="${SECRET_SDP_TEN_ID:-}"
 
-# Validate and export SDP variables for workflows containing 'sdp' in the name
+# Validate SDP secrets for DAGs containing 'sdp' in the name
 if [[ "${WORKFLOW_NAME:-}" =~ sdp ]]; then
   echo "SDP variables are required for workflow: ${WORKFLOW_NAME}"
-
   # Validate SDP variables
   if [[ -z "${SDP_DEV_POOL_CLIENT_ID:-}" || -z "${SDP_DEV_POOL_CLIENT_SECRET:-}" || -z "${SDP_TENANT_ID:-}" ]]; then
     echo "SDP variables are not set. Exiting."
     exit 1
   fi
-
-  # Export SDP variables
-  export SDP_DEV_POOL_CLIENT_ID="${SDP_DEV_POOL_CLIENT_ID}"
-  export SDP_DEV_POOL_CLIENT_SECRET="${SDP_DEV_POOL_CLIENT_SECRET}"
-  export SDP_TENANT_ID="${SDP_TENANT_ID}"
-
   echo "SDP variables exported successfully."
 else
   echo "SDP variables are not required for workflow: ${WORKFLOW_NAME:-"unknown"}. Skipping SDP setup."
