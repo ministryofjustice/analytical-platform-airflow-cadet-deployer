@@ -144,7 +144,20 @@ function export_run_artefacts() {
   export RUN_TIME
   export AIRFLOW_WORKFLOW_REF="${WORKFLOW_NAME:-"unknown_workflow"}"
 
-  python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
+  # Skip exporting run artefacts for specific projects if not needed
+  if [ "${DBT_PROJECT}" = "sdp_tables" ]; then
+    echo "Skipping export of run artefacts for project sdp_tables"
+    return
+  fi
+
+  # For mojap_derived_tables project we call it directly
+  if [ "${DBT_PROJECT}" = "mojap_derived_tables" ]; then
+    python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
+    return
+  fi
+
+  # For any other projects we currently do not export run artefacts
+  echo "No export_run_artefacts behaviour defined for project ${DBT_PROJECT}; skipping"
 }
 
 function import_run_artefacts() {
