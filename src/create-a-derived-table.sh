@@ -29,14 +29,14 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
-  local DBT_COMMAND="dbt ${MODE} --profiles-dir ${REPOSITORY_PATH}/.dbt --select ${DBT_SELECT_CRITERIA} --target ${DEPLOY_ENV}"
+  local -a DBT_COMMAND=(dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
   if [ -n "${THREAD_COUNT}" ]; then
-    local DBT_COMMAND="${DBT_COMMAND} --threads ${THREAD_COUNT}"
+    DBT_COMMAND+=(--threads "${THREAD_COUNT}")
   fi
   if [ -n "${VARS}" ]; then
-    DBT_COMMAND="${DBT_COMMAND} --vars ${VARS}"
+    DBT_COMMAND+=(--vars "${VARS}")
   fi
-  if $DBT_COMMAND; then
+  if "${DBT_COMMAND[@]}"; then
     echo "dbt command succeeded"
     return 0
   else
@@ -64,7 +64,7 @@ function run_dbt() {
         fi
       else
         echo "DBT run failed without artefacts, re-running full command"
-        if dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}"/.dbt --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}"; then
+        if "${DBT_COMMAND[@]}"; then
           echo "dbt command succeeded"
           return 0
         fi
@@ -82,8 +82,8 @@ function nomis_setup() {
   local max_retries=5
   local attempt=2
   set +e
-  local DBT_COMMAND="dbt source freshness --target ${DEPLOY_ENV} --select source:nomis_unixtime"
-  if $DBT_COMMAND; then
+  local -a DBT_COMMAND=(dbt source freshness --target "${DEPLOY_ENV}" --select source:nomis_unixtime)
+  if "${DBT_COMMAND[@]}"; then
     echo "NOMIS source freshness check passed"
     rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
   elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
@@ -98,7 +98,7 @@ function nomis_setup() {
         return 1
       else
         echo "NOMIS source freshness check failed on attempt ${attempt}, retrying"
-        if $DBT_COMMAND; then
+        if "${DBT_COMMAND[@]}"; then
           echo "NOMIS source freshness check passed on retry"
           rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
           return 0
