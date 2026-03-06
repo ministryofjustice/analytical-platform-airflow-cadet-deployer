@@ -9,16 +9,16 @@ export DATASET_TARGET="${DATASET_TARGET:-""}"
 export UNIQUE_IDS="${UNIQUE_IDS:-}"
 
 function dataset_check() {
-  local base_command="uv run check_run_results.py"
-  if [ -z "${DATASET_TARGET}" ]; then
-    local command="${base_command} --check-all-nodes"
-  elif [ -n "${UNIQUE_IDS}" ]; then
-    local command="${base_command} --unique-ids \"${UNIQUE_IDS}\""
+  local -a command=(uv run check_run_results.py)
+  if [ -n "${UNIQUE_IDS}" ]; then
+    command+=(--unique-ids "${UNIQUE_IDS}")
+  elif [ -n "${DATASET_TARGET}" ]; then
+    : # DATASET_TARGET is used by the python script via env var / yaml lookup
   else
-    local command="${base_command}"
+    command+=(--check-all-nodes)
   fi
-  echo "Running dataset check with command: ${command}"
-  if $command; then
+  echo "Running dataset check with command: ${command[*]}"
+  if "${command[@]}"; then
     echo "Dataset Check Passed!"
     exit 0
   else
