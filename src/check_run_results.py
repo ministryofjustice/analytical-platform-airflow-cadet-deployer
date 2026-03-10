@@ -333,7 +333,7 @@ def main() -> int:
     if args.unique_ids:
         unique_ids.extend(_parse_unique_ids(args.unique_ids))
     yaml_path = args.unique_id_yaml
-    if yaml_path is None and DEFAULT_UNIQUE_ID_YAML.exists():
+    if not unique_ids and yaml_path is None and DEFAULT_UNIQUE_ID_YAML.exists():
         yaml_path = DEFAULT_UNIQUE_ID_YAML
         logging.info("Using default unique_id YAML path: %s", yaml_path)
     if not DEFAULT_UNIQUE_ID_YAML.exists():
