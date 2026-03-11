@@ -134,7 +134,7 @@ function export_run_artefacts() {
   # Skip exporting run artefacts for sdp_tables projects
   if [ "${DBT_PROJECT}" = "sdp_tables" ]; then
     echo "Skipping export of run artefacts for project sdp_tables"
-    return
+    return 0
   else
     python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
   fi
