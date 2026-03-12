@@ -131,7 +131,13 @@ function export_run_artefacts() {
   export RUN_TIME
   export AIRFLOW_WORKFLOW_REF="${WORKFLOW_NAME:-"unknown_workflow"}"
 
-  python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
+  # Skip exporting run artefacts for sdp_tables projects
+  if [ "${DBT_PROJECT}" = "sdp_tables" ]; then
+    echo "Skipping export of run artefacts for project sdp_tables"
+    return 0
+  else
+    python "${REPOSITORY_PATH}/scripts/export_run_artefacts.py"
+  fi
 }
 
 function import_run_artefacts() {
