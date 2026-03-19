@@ -36,10 +36,10 @@ apt-get clean --yes
 rm --force --recursive /var/lib/apt/lists/* microsoft.asc microsoft-prod.gpg
 EOF
 
+USER ${CONTAINER_UID}
+
 RUN uv sync --frozen --no-dev
 
 COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} --chmod=0755 src/ ${ANALYTICAL_PLATFORM_DIRECTORY}
-
-USER ${CONTAINER_UID}
 
 ENTRYPOINT ["./entrypoint.sh"]
