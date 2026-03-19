@@ -19,7 +19,7 @@ curl --location --fail-with-body \
   "https://packages.microsoft.com/keys/microsoft.asc" \
   --output microsoft.asc
 
-cat microsoft.asc | gpg --dearmor --output microsoft-prod.gpg
+gpg --dearmor --output microsoft-prod.gpg microsoft.asc
 
 install -D --owner root --group root --mode 644 microsoft-prod.gpg /usr/share/keyrings/microsoft-prod.gpg
 
@@ -27,7 +27,7 @@ echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.g
 
 apt-get update --yes
 
-ACCEPT_EULA=Y apt-get install --yes \
+ACCEPT_EULA=Y apt-get install --yes --no-install-recommends \
   "msodbcsql18=${MICROSOFT_SQL_ODBC_VERSION}" \
   "mssql-tools18=${MICROSOFT_SQL_TOOLS_VERSION}"
 
