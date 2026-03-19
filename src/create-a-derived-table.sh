@@ -157,6 +157,11 @@ source .venv/bin/activate
 
 uv pip install --requirements requirements.txt
 
+if [ "${DBT_PROJECT}" = "sdp_tables" ]; then
+  echo "Installing SDP specific Python dependencies from requirements-sdp.txt"
+  uv pip install --force-reinstall --requirement requirements-sdp.txt --no-cache-dir
+fi
+
 echo "Changing to project directory [ ${DBT_PROJECT} ]"
 cd "${DBT_PROJECT}"
 
