@@ -17,4 +17,4 @@ jobs:
       statuses: write
     with:
       super-linter-variables: '{"VALIDATE_PYTHON_RUFF_FORMAT": "false"}'
-    uses: ministryofjustice/analytical-platform-github-actions/.github/workflows/reusable-super-linter.yml@9e604949e842733e0990f5eb6627844e8715deeb # v6.4.0
+    uses: ministryofjustice/analytical-platform-github-actions/.github/workflows/reusable-super-linter.yml@22e533bbaa3a26bfa2fc3715b74daeba79d6300a # v7.0.0
