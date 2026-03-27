@@ -11,7 +11,7 @@ USER root
 
 WORKDIR ${ANALYTICAL_PLATFORM_DIRECTORY}
 
-COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} pyproject.toml uv.lock ./
+COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} pyproject.toml uv.lock requirements.txt ./
 
 # Microsoft SQL ODBC and Tools
 RUN <<EOF
