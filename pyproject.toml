@@ -6,4 +6,5 @@ readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "boto3>=1.42.29",
+    "jupyterlab==3.0.0",
 ]
