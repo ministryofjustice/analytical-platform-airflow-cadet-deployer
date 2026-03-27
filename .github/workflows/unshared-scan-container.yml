@@ -67,7 +67,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TEST_TOKEN }}
         with:
           image: ${{ github.sha }}
-          args: --severity-threshold=high --app-vulns --policy-path=.snyk --exclude-app-vulns=false --sarif-file-output=snyk.sarif
+          args: --severity-threshold=high --policy-path=.snyk --sarif-file-output=snyk.sarif
 
       - name: Upload SARIF
         id: upload_sarif
