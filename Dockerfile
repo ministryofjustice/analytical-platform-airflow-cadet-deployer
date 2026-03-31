@@ -38,7 +38,7 @@ EOF
 
 USER ${CONTAINER_UID}
 
-RUN uv sync --frozen --no-dev
+RUN uv pip install --no-cache --requirement requirements.txt
 
 COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} --chmod=0755 src/ ${ANALYTICAL_PLATFORM_DIRECTORY}
 
