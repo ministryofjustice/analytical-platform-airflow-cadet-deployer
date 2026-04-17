@@ -39,7 +39,7 @@ EOF
 USER ${CONTAINER_UID}
 
 RUN uv venv
-RUN uv sync --no-dev --no-edit --no-lock
+RUN uv sync --no-dev
 
 COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} --chmod=0755 src/ ${ANALYTICAL_PLATFORM_DIRECTORY}
 
