@@ -3,6 +3,7 @@
 coverage/
 venv/
 env/
+.venv/
 .DS_STORE
 .vscode
 *.code-workspace

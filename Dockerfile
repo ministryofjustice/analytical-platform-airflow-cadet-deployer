@@ -39,7 +39,7 @@ EOF
 USER ${CONTAINER_UID}
 
 RUN uv venv
-RUN uv pip install --no-cache --requirement ${ANALYTICAL_PLATFORM_DIRECTORY}/requirements.txt
+RUN uv sync --no-dev --no-edit --no-lock
 
 COPY --chown=${CONTAINER_UID}:${CONTAINER_GID} --chmod=0755 src/ ${ANALYTICAL_PLATFORM_DIRECTORY}
 
