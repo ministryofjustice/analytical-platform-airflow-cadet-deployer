@@ -2,6 +2,7 @@
 #checkov:skip=CKV_DOCKER_3: USER is set in the base image (https://github.com/ministryofjustice/analytical-platform-airflow-python-base/blob/main/Dockerfile#L135)
 
 FROM ghcr.io/ministryofjustice/analytical-platform-airflow-python-base:1.29.0@sha256:df1ca49da80425c5fa15824ba09c5b3a536633608b90ff6623802e56716efb40
+ARG MOJAP_IMAGE_VERSION="default"
 ENV MOJAP_IMAGE_VERSION=${MOJAP_IMAGE_VERSION} \
     MICROSOFT_SQL_ODBC_VERSION="18.6.1.1-1" \
     MICROSOFT_SQL_TOOLS_VERSION="18.6.1.1-1"
