@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "src" / "check_run_results.py"
 SPEC = importlib.util.spec_from_file_location("check_run_results", MODULE_PATH)
 check_run_results = importlib.util.module_from_spec(SPEC)

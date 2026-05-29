@@ -7,7 +7,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = REPO_ROOT / "src"
 
@@ -102,9 +101,7 @@ class EntryPointTest(ShellScriptTest):
             )
             self.write_stub(
                 src / "uv",
-                "#!/usr/bin/env bash\n"
-                f"printf '%s\\n' \"$*\" >> {log}\n"
-                "exit 0\n",
+                "#!/usr/bin/env bash\n" f"printf '%s\\n' \"$*\" >> {log}\n" "exit 0\n",
             )
 
             result = self.run_bash(
@@ -161,9 +158,7 @@ class CreateDerivedTableTest(ShellScriptTest):
 
             self.write_stub(
                 bin_path / "dbt",
-                "#!/usr/bin/env bash\n"
-                f"echo dbt:$* >> {log}\n"
-                "exit 1\n",
+                "#!/usr/bin/env bash\n" f"echo dbt:$* >> {log}\n" "exit 1\n",
             )
             self.write_stub(bin_path / "sleep", "#!/usr/bin/env bash\nexit 0\n")
 
@@ -196,9 +191,7 @@ class CreateDerivedTableTest(ShellScriptTest):
 
             self.write_stub(
                 bin_path / "dbt",
-                "#!/usr/bin/env bash\n"
-                f"echo dbt:$* >> {log}\n"
-                "exit 1\n",
+                "#!/usr/bin/env bash\n" f"echo dbt:$* >> {log}\n" "exit 1\n",
             )
             self.write_stub(bin_path / "sleep", "#!/usr/bin/env bash\nexit 0\n")
 
