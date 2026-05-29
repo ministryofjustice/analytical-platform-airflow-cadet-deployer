@@ -8,9 +8,6 @@ dependencies = [
     "boto3>=1.42.94",
 ]
 
-[tool.codespell]
-skip = "uv.lock"
-
 [dependency-groups]
 dev = [
     "black>=26.5.1",
