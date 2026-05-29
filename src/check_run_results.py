@@ -47,6 +47,37 @@ def _parse_unique_ids(values: Iterable[str]) -> list[str]:
     return unique_ids
 
 
+def resolve_unique_ids(
+    cli_unique_ids: Iterable[str] | None,
+    yaml_path: Path | None,
+    dataset_target: str | None,
+    default_yaml_path: Path = DEFAULT_UNIQUE_ID_YAML,
+) -> list[str]:
+    """Resolve unique ids from CLI/env values or a dataset-target YAML file."""
+    unique_ids: list[str] = []
+
+    if cli_unique_ids:
+        unique_ids.extend(_parse_unique_ids(cli_unique_ids))
+
+    if not unique_ids and yaml_path is None and default_yaml_path.exists():
+        yaml_path = default_yaml_path
+        logging.info("Using default unique_id YAML path: %s", yaml_path)
+    if not default_yaml_path.exists():
+        logging.info("YAML not found at default path: %s", default_yaml_path)
+
+    if yaml_path:
+        if not dataset_target:
+            raise ValueError("DATASET_TARGET is required when using --unique-id-yaml.")
+        unique_ids.extend(_parse_unique_ids_yaml(yaml_path, dataset_target))
+
+    if not unique_ids:
+        raise ValueError(
+            "At least one unique_id is required via --unique-id or --unique-id-yaml."
+        )
+
+    return unique_ids
+
+
 def _parse_structured_unique_ids(value: str) -> list[str]:
     value = value.strip()
     if not value or value[0] not in "[{":
@@ -152,36 +183,6 @@ def _load_run_results(path: Path) -> tuple[dict, str]:
     # Find the maximum (ISO 8601 strings sort correctly)
     max_completed = max(completed_times) if completed_times else ""
     return data, max_completed
-
-
-def _resolve_unique_ids(
-    cli_unique_ids: Iterable[str] | None,
-    yaml_path: Path | None,
-    dataset_target: str | None,
-    default_yaml_path: Path = DEFAULT_UNIQUE_ID_YAML,
-) -> list[str]:
-    unique_ids: list[str] = []
-
-    if cli_unique_ids:
-        unique_ids.extend(_parse_unique_ids(cli_unique_ids))
-
-    if not unique_ids and yaml_path is None and default_yaml_path.exists():
-        yaml_path = default_yaml_path
-        logging.info("Using default unique_id YAML path: %s", yaml_path)
-    if not default_yaml_path.exists():
-        logging.info("YAML not found at default path: %s", default_yaml_path)
-
-    if yaml_path:
-        if not dataset_target:
-            raise ValueError("DATASET_TARGET is required when using --unique-id-yaml.")
-        unique_ids.extend(_parse_unique_ids_yaml(yaml_path, dataset_target))
-
-    if not unique_ids:
-        raise ValueError(
-            "At least one unique_id is required via --unique-id or --unique-id-yaml."
-        )
-
-    return unique_ids
 
 
 def _download_run_results_from_s3(
@@ -397,7 +398,7 @@ def main() -> int:
         logging.info("Validation completed")
         return 0
 
-    unique_ids = _resolve_unique_ids(
+    unique_ids = resolve_unique_ids(
         cli_unique_ids=args.unique_ids,
         yaml_path=args.unique_id_yaml,
         dataset_target=os.environ.get("DATASET_TARGET"),

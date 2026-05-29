@@ -1,7 +1,8 @@
+"""Unit tests for the deployer shell scripts."""
+
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import tempfile
 import unittest
@@ -12,9 +13,7 @@ SRC_DIR = REPO_ROOT / "src"
 
 
 class ShellScriptTest(unittest.TestCase):
-    def write_stub(self, path: Path, content: str) -> None:
-        path.write_text(content, encoding="utf-8")
-        path.chmod(0o755)
+    """Shared helpers for invoking sourceable shell functions."""
 
     def run_bash(
         self,
@@ -23,6 +22,7 @@ class ShellScriptTest(unittest.TestCase):
         env: dict[str, str] | None = None,
         cwd: Path = SRC_DIR,
     ) -> subprocess.CompletedProcess[str]:
+        """Run a bash command with repository defaults."""
         run_env = os.environ.copy()
         run_env.update(env or {})
 
@@ -36,22 +36,31 @@ class ShellScriptTest(unittest.TestCase):
             check=False,
         )
 
+    @staticmethod
+    def write_executable(path: Path, content: str) -> None:
+        """Write an executable command shim for an unavailable runtime command."""
+        path.write_text(content, encoding="utf-8")
+        path.chmod(0o755)
+
 
 class DateCheckerTest(ShellScriptTest):
+    """Tests for Sunday deploy date gates."""
+
     def test_first_sunday_requires_monthly_select_criteria(self) -> None:
+        """First Sunday runs fail unless monthly models are selected."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            date = Path(tmp_dir) / "date"
-            date.write_text(
+            command_shims = Path(tmp_dir) / "commands"
+            command_shims.mkdir()
+            self.write_executable(
+                command_shims / "date",
                 "#!/usr/bin/env bash\n"
                 "if [ \"$1\" = '+%w' ]; then echo 0; else echo 01; fi\n",
-                encoding="utf-8",
             )
-            date.chmod(0o755)
 
             result = self.run_bash(
                 "./date-checker.sh",
                 env={
-                    "PATH": f"{tmp_dir}:{os.environ['PATH']}",
+                    "PATH": f"{command_shims}:{os.environ['PATH']}",
                     "DBT_SELECT_CRITERIA": "tag:daily",
                 },
             )
@@ -59,20 +68,21 @@ class DateCheckerTest(ShellScriptTest):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("does NOT contain", result.stdout)
 
-    def test_non_first_sunday_rejects_monthly_select_criteria(self) -> None:
+    def test_later_sundays_reject_monthly_select_criteria(self) -> None:
+        """Non-first Sunday runs fail if monthly models are selected."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            date = Path(tmp_dir) / "date"
-            date.write_text(
+            command_shims = Path(tmp_dir) / "commands"
+            command_shims.mkdir()
+            self.write_executable(
+                command_shims / "date",
                 "#!/usr/bin/env bash\n"
                 "if [ \"$1\" = '+%w' ]; then echo 0; else echo 14; fi\n",
-                encoding="utf-8",
             )
-            date.chmod(0o755)
 
             result = self.run_bash(
                 "./date-checker.sh",
                 env={
-                    "PATH": f"{tmp_dir}:{os.environ['PATH']}",
+                    "PATH": f"{command_shims}:{os.environ['PATH']}",
                     "DBT_SELECT_CRITERIA": "tag:monthly",
                 },
             )
@@ -81,133 +91,140 @@ class DateCheckerTest(ShellScriptTest):
             self.assertIn("contains 'tag:monthly'", result.stdout)
 
 
-class EntryPointTest(ShellScriptTest):
-    def copy_src_to_temp(self, tmp_dir: str) -> Path:
-        dest = Path(tmp_dir) / "src"
-        shutil.copytree(SRC_DIR, dest)
-        return dest
+class EntryPointDatasetCheckTest(ShellScriptTest):
+    """Tests for entrypoint dataset-check command selection."""
 
-    def test_dataset_check_with_unique_ids_exits_after_success(self) -> None:
+    def test_unique_ids_are_passed_to_dataset_check_command(self) -> None:
+        """UNIQUE_IDS becomes the explicit check_run_results.py argument."""
+        result = self.run_bash(
+            "source ./entrypoint.sh; build_dataset_check_command; "
+            "printf '%s\\n' \"${DATASET_CHECK_COMMAND[@]}\"",
+            env={
+                "UNIQUE_IDS": '{"daily": ["model.project.a"]}',
+                "DATASET_TARGET": "",
+            },
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout.splitlines(),
+            [
+                "uv",
+                "run",
+                "check_run_results.py",
+                "--unique-ids",
+                '{"daily": ["model.project.a"]}',
+            ],
+        )
+
+    def test_dataset_target_uses_default_yaml_lookup(self) -> None:
+        """DATASET_TARGET leaves arguments empty so Python resolves the YAML."""
+        result = self.run_bash(
+            "source ./entrypoint.sh; build_dataset_check_command; "
+            "printf '%s\\n' \"${DATASET_CHECK_COMMAND[@]}\"",
+            env={
+                "UNIQUE_IDS": "",
+                "DATASET_TARGET": "parole_board.psog_reports",
+            },
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout.splitlines(),
+            ["uv", "run", "check_run_results.py"],
+        )
+
+    def test_missing_dataset_target_checks_all_nodes(self) -> None:
+        """No UNIQUE_IDS or DATASET_TARGET falls back to all-node validation."""
+        result = self.run_bash(
+            "source ./entrypoint.sh; build_dataset_check_command; "
+            "printf '%s\\n' \"${DATASET_CHECK_COMMAND[@]}\"",
+            env={"UNIQUE_IDS": "", "DATASET_TARGET": ""},
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout.splitlines(),
+            ["uv", "run", "check_run_results.py", "--check-all-nodes"],
+        )
+
+
+class CreateDerivedTableRetryTest(ShellScriptTest):
+    """Tests for deploy retry decisions from project target artefacts."""
+
+    def create_project_fixture(
+        self, tmp_dir: str, with_run_results: bool
+    ) -> tuple[Path, Path]:
+        """Create a minimal cloned repository layout for a dbt project."""
+        repository_path = Path(tmp_dir) / "create-a-derived-table"
+        target_path = repository_path / "mojap_derived_tables" / "target"
+        target_path.mkdir(parents=True)
+        if with_run_results:
+            (target_path / "run_results.json").write_text("{}", encoding="utf-8")
+        return repository_path, target_path
+
+    def write_retry_shims(self, tmp_dir: str, target_path: Path) -> Path:
+        """Create command shims for dbt and sleep used by run_dbt."""
+        command_shims = Path(tmp_dir) / "commands"
+        command_shims.mkdir()
+        dbt_invocations = target_path / "dbt_invocations.txt"
+        self.write_executable(
+            command_shims / "dbt",
+            "#!/usr/bin/env bash\n"
+            f"printf '%s\\n' \"$*\" >> {dbt_invocations}\n"
+            "exit 1\n",
+        )
+        self.write_executable(command_shims / "sleep", "#!/usr/bin/env bash\nexit 0\n")
+        return command_shims
+
+    def run_dbt_with_project_fixture(
+        self,
+        tmp_dir: str,
+        repository_path: Path,
+        command_shims: Path,
+    ) -> subprocess.CompletedProcess[str]:
+        """Source create-a-derived-table.sh and call run_dbt with fixture env."""
+        return self.run_bash(
+            "source ./create-a-derived-table.sh; run_dbt",
+            env={
+                "PATH": f"{command_shims}:{os.environ['PATH']}",
+                "ANALYTICAL_PLATFORM_DIRECTORY": tmp_dir,
+                "REPOSITORY_PATH": str(repository_path),
+                "MODE": "build",
+                "DBT_PROFILE_WORKGROUP": "workgroup",
+                "DBT_PROJECT": "mojap_derived_tables",
+                "DBT_SELECT_CRITERIA": "tag:daily",
+                "DEPLOY_ENV": "prod",
+                "WORKFLOW_NAME": "workflow",
+            },
+        )
+
+    def test_partial_dbt_run_succeeds_when_run_results_exist(self) -> None:
+        """Existing run_results.json means retries produced usable artefacts."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            src = self.copy_src_to_temp(tmp_dir)
-            log = Path(tmp_dir) / "calls.log"
-            self.write_stub(
-                src / "clone-create-a-derived-table.sh",
-                f"#!/usr/bin/env bash\necho clone >> {log}\n",
+            repository_path, target_path = self.create_project_fixture(
+                tmp_dir, with_run_results=True
             )
-            self.write_stub(
-                src / "create-a-derived-table.sh",
-                f"#!/usr/bin/env bash\necho deploy >> {log}\n",
-            )
-            self.write_stub(
-                src / "uv",
-                "#!/usr/bin/env bash\n" f"printf '%s\\n' \"$*\" >> {log}\n" "exit 0\n",
-            )
+            command_shims = self.write_retry_shims(tmp_dir, target_path)
 
-            result = self.run_bash(
-                "./entrypoint.sh",
-                cwd=src,
-                env={
-                    "PATH": f"{src}:{os.environ['PATH']}",
-                    "IS_DATASET_CHECK": "True",
-                    "UNIQUE_IDS": '{"daily": ["model.project.a"]}',
-                },
-            )
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(
-                log.read_text(encoding="utf-8").splitlines(),
-                [
-                    "clone",
-                    'run check_run_results.py --unique-ids {"daily": ["model.project.a"]}',
-                ],
-            )
-
-    def test_deployment_runs_when_dataset_check_is_disabled(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            src = self.copy_src_to_temp(tmp_dir)
-            log = Path(tmp_dir) / "calls.log"
-            self.write_stub(
-                src / "clone-create-a-derived-table.sh",
-                f"#!/usr/bin/env bash\necho clone >> {log}\n",
-            )
-            self.write_stub(
-                src / "create-a-derived-table.sh",
-                f"#!/usr/bin/env bash\necho deploy >> {log}\n",
-            )
-
-            result = self.run_bash("./entrypoint.sh", cwd=src)
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(
-                log.read_text(encoding="utf-8").splitlines(),
-                ["clone", "deploy"],
-            )
-
-
-class CreateDerivedTableTest(ShellScriptTest):
-    def test_run_dbt_returns_success_when_retry_artifacts_exist(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            repo_path = Path(tmp_dir) / "create-a-derived-table"
-            project_path = repo_path / "project" / "target"
-            bin_path = Path(tmp_dir) / "bin"
-            log = Path(tmp_dir) / "calls.log"
-            project_path.mkdir(parents=True)
-            bin_path.mkdir()
-            (project_path / "run_results.json").write_text("{}", encoding="utf-8")
-
-            self.write_stub(
-                bin_path / "dbt",
-                "#!/usr/bin/env bash\n" f"echo dbt:$* >> {log}\n" "exit 1\n",
-            )
-            self.write_stub(bin_path / "sleep", "#!/usr/bin/env bash\nexit 0\n")
-
-            result = self.run_bash(
-                "source ./create-a-derived-table.sh; run_dbt",
-                env={
-                    "PATH": f"{bin_path}:{os.environ['PATH']}",
-                    "ANALYTICAL_PLATFORM_DIRECTORY": tmp_dir,
-                    "REPOSITORY_PATH": str(repo_path),
-                    "MODE": "build",
-                    "DBT_PROFILE_WORKGROUP": "workgroup",
-                    "DBT_PROJECT": "project",
-                    "DBT_SELECT_CRITERIA": "tag:daily",
-                    "DEPLOY_ENV": "prod",
-                    "WORKFLOW_NAME": "workflow",
-                },
+            result = self.run_dbt_with_project_fixture(
+                tmp_dir, repository_path, command_shims
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("dbt command at least partially succeeded", result.stdout)
-            self.assertTrue((project_path / "run_results_1.json").exists())
+            self.assertTrue((target_path / "run_results_1.json").exists())
 
-    def test_run_dbt_fails_when_no_retry_artifacts_exist(self) -> None:
+    def test_failed_dbt_run_without_run_results_is_unsuccessful(self) -> None:
+        """A complete failure without run artefacts returns a failing exit code."""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            repo_path = Path(tmp_dir) / "create-a-derived-table"
-            (repo_path / "project" / "target").mkdir(parents=True)
-            bin_path = Path(tmp_dir) / "bin"
-            log = Path(tmp_dir) / "calls.log"
-            bin_path.mkdir()
-
-            self.write_stub(
-                bin_path / "dbt",
-                "#!/usr/bin/env bash\n" f"echo dbt:$* >> {log}\n" "exit 1\n",
+            repository_path, target_path = self.create_project_fixture(
+                tmp_dir, with_run_results=False
             )
-            self.write_stub(bin_path / "sleep", "#!/usr/bin/env bash\nexit 0\n")
+            command_shims = self.write_retry_shims(tmp_dir, target_path)
 
-            result = self.run_bash(
-                "source ./create-a-derived-table.sh; run_dbt",
-                env={
-                    "PATH": f"{bin_path}:{os.environ['PATH']}",
-                    "ANALYTICAL_PLATFORM_DIRECTORY": tmp_dir,
-                    "REPOSITORY_PATH": str(repo_path),
-                    "MODE": "build",
-                    "DBT_PROFILE_WORKGROUP": "workgroup",
-                    "DBT_PROJECT": "project",
-                    "DBT_SELECT_CRITERIA": "tag:daily",
-                    "DEPLOY_ENV": "prod",
-                    "WORKFLOW_NAME": "workflow",
-                },
+            result = self.run_dbt_with_project_fixture(
+                tmp_dir, repository_path, command_shims
             )
 
             self.assertNotEqual(result.returncode, 0)

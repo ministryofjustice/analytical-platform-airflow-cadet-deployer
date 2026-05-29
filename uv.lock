@@ -14,6 +14,7 @@ dependencies = [
 dev = [
     { name = "black" },
     { name = "boto3-stubs" },
+    { name = "codespell" },
     { name = "isort" },
     { name = "mypy" },
     { name = "pylint" },
@@ -26,6 +27,7 @@ requires-dist = [{ name = "boto3", specifier = ">=1.42.94" }]
 dev = [
     { name = "black", specifier = ">=26.5.1" },
     { name = "boto3-stubs", specifier = ">=1.43.17" },
+    { name = "codespell", specifier = ">=2.4.2" },
     { name = "isort", specifier = ">=8.0.1" },
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "pylint", specifier = ">=4.0.5" },
@@ -154,6 +156,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9b/98/518d8e5081007684232226f475082b30087d0f585e8457db087298259f49/click-8.4.1.tar.gz", hash = "sha256:918b5633eddf6b41c32d4f454bf0de810065c74e3f7dbf8ee5452f8be88d3e96", size = 353007, upload-time = "2026-05-22T04:08:37.769Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/0d/67e5b4109ea4a837e80daa87c2c696711955e40449a97e8926672534def2/click-8.4.1-py3-none-any.whl", hash = "sha256:482be17c6991b8c19c5429a1e995d9b0efdbb63172824c41f99965dc0ade8ec2", size = 116639, upload-time = "2026-05-22T04:08:35.26Z" },
+]
+
+[[package]]
+name = "codespell"
+version = "2.4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2d/9d/1d0903dff693160f893ca6abcabad545088e7a2ee0a6deae7c24e958be69/codespell-2.4.2.tar.gz", hash = "sha256:3c33be9ae34543807f088aeb4832dfad8cb2dae38da61cac0a7045dd376cfdf3", size = 352058, upload-time = "2026-03-05T18:10:42.936Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/a1/52fa05533e95fe45bcc09bcf8a503874b1c08f221a4e35608017e0938f55/codespell-2.4.2-py3-none-any.whl", hash = "sha256:97e0c1060cf46bd1d5db89a936c98db8c2b804e1fdd4b5c645e82a1ec6b1f886", size = 353715, upload-time = "2026-03-05T18:10:41.398Z" },
 ]
 
 [[package]]
