@@ -17,5 +17,5 @@ jobs:
       pull-requests: write
       statuses: write
     with:
-      super-linter-variables: '{"FILTER_REGEX_EXCLUDE": "uv.lock", "VALIDATE_PYTHON_RUFF_FORMAT": "false"}'
+      super-linter-variables: '{"FILTER_REGEX_EXCLUDE": ".*uv\\.lock$", "VALIDATE_PYTHON_RUFF_FORMAT": "false"}'
     uses: ministryofjustice/analytical-platform-github-actions/.github/workflows/reusable-super-linter.yml@f3b2ed398ec5c17e2f59d983bc01c79c73632246 # v7.3.0
