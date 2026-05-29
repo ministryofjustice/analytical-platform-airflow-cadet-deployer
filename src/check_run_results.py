@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import logging
 import os
@@ -35,11 +36,79 @@ def _normalize_unique_id(value: str) -> str:
 def _parse_unique_ids(values: Iterable[str]) -> list[str]:
     unique_ids: list[str] = []
     for value in values:
+        structured_ids = _parse_structured_unique_ids(value)
+        if structured_ids:
+            unique_ids.extend(structured_ids)
+            continue
         for item in value.split(","):
             item = _normalize_unique_id(item)
             if item:
                 unique_ids.append(item)
     return unique_ids
+
+
+def resolve_unique_ids(
+    cli_unique_ids: Iterable[str] | None,
+    yaml_path: Path | None,
+    dataset_target: str | None,
+    default_yaml_path: Path = DEFAULT_UNIQUE_ID_YAML,
+) -> list[str]:
+    """Resolve unique ids from CLI/env values or a dataset-target YAML file."""
+    unique_ids: list[str] = []
+
+    if cli_unique_ids:
+        unique_ids.extend(_parse_unique_ids(cli_unique_ids))
+
+    if not unique_ids and yaml_path is None and default_yaml_path.exists():
+        yaml_path = default_yaml_path
+        logging.info("Using default unique_id YAML path: %s", yaml_path)
+    if not default_yaml_path.exists():
+        logging.info("YAML not found at default path: %s", default_yaml_path)
+
+    if yaml_path:
+        if not dataset_target:
+            raise ValueError("DATASET_TARGET is required when using --unique-id-yaml.")
+        unique_ids.extend(_parse_unique_ids_yaml(yaml_path, dataset_target))
+
+    if not unique_ids:
+        raise ValueError(
+            "At least one unique_id is required via --unique-id or --unique-id-yaml."
+        )
+
+    return unique_ids
+
+
+def _parse_structured_unique_ids(value: str) -> list[str]:
+    value = value.strip()
+    if not value or value[0] not in "[{":
+        return []
+
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        try:
+            parsed = ast.literal_eval(value)
+        except (SyntaxError, ValueError):
+            return []
+
+    return _unique_ids_from_structured_value(parsed)
+
+
+def _unique_ids_from_structured_value(value: object) -> list[str]:
+    if isinstance(value, str):
+        normalized = _normalize_unique_id(value)
+        return [normalized] if normalized else []
+    if isinstance(value, dict):
+        unique_ids: list[str] = []
+        for nested_value in value.values():
+            unique_ids.extend(_unique_ids_from_structured_value(nested_value))
+        return unique_ids
+    if isinstance(value, list | tuple | set):
+        unique_ids = []
+        for item in value:
+            unique_ids.extend(_unique_ids_from_structured_value(item))
+        return unique_ids
+    return []
 
 
 def _parse_unique_ids_yaml(path: Path, dataset_target: str) -> list[str]:
@@ -329,24 +398,11 @@ def main() -> int:
         logging.info("Validation completed")
         return 0
 
-    unique_ids: list[str] = []
-    if args.unique_ids:
-        unique_ids.extend(_parse_unique_ids(args.unique_ids))
-    yaml_path = args.unique_id_yaml
-    if not unique_ids and yaml_path is None and DEFAULT_UNIQUE_ID_YAML.exists():
-        yaml_path = DEFAULT_UNIQUE_ID_YAML
-        logging.info("Using default unique_id YAML path: %s", yaml_path)
-    if not DEFAULT_UNIQUE_ID_YAML.exists():
-        logging.info("YAML not found at default path: %s", DEFAULT_UNIQUE_ID_YAML)
-    if yaml_path:
-        dataset_target = os.environ.get("DATASET_TARGET")
-        if not dataset_target:
-            raise ValueError("DATASET_TARGET is required when using --unique-id-yaml.")
-        unique_ids.extend(_parse_unique_ids_yaml(yaml_path, dataset_target))
-    if not unique_ids:
-        raise ValueError(
-            "At least one unique_id is required via --unique-id or --unique-id-yaml."
-        )
+    unique_ids = resolve_unique_ids(
+        cli_unique_ids=args.unique_ids,
+        yaml_path=args.unique_id_yaml,
+        dataset_target=os.environ.get("DATASET_TARGET"),
+    )
     logging.info("Resolved %d unique_id(s)", len(unique_ids))
 
     if deploy_env and deploy_env != "prod":
