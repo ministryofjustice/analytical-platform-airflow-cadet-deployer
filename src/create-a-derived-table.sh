@@ -21,35 +21,50 @@ DEPLOY_ENV_UPPER=$(echo "${DEPLOY_ENV}" | tr '[:lower:]' '[:upper:]')
 export "DBT_${DEPLOY_ENV_UPPER}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
 export DBT_PROFILE="${DBT_PROFILE:-"mojap"}"
 
+function is_true() {
+  [[ "${1}" == "True" || "${1}" == "true" ]]
+}
+
+function build_dbt_command() {
+  DBT_COMMAND=(dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
+
+  if [ -n "${THREAD_COUNT}" ]; then
+    DBT_COMMAND+=(--threads "${THREAD_COUNT}")
+  fi
+
+  if [ -n "${VARS}" ]; then
+    DBT_COMMAND+=(--vars "${VARS}")
+  fi
+}
+
 function run_dbt() {
   local max_retries=3
   local attempt=2
   local previous_attempt=1
   local run_results_exists=false
+  local -a DBT_COMMAND
 
-  # Disable immediate exit on error for the loop
+  build_dbt_command
   set +e
-  local -a DBT_COMMAND=(dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
-  if [ -n "${THREAD_COUNT}" ]; then
-    DBT_COMMAND+=(--threads "${THREAD_COUNT}")
-  fi
-  if [ -n "${VARS}" ]; then
-    DBT_COMMAND+=(--vars "${VARS}")
-  fi
+
   if "${DBT_COMMAND[@]}"; then
     echo "dbt command succeeded"
+    set -e
     return 0
   else
     echo "dbt command failed, attempting to dbt retry..."
   fi
+
   while [[ "${attempt}" -le "${max_retries}" ]]; do
     echo "Attempt ${attempt} of ${max_retries} to run dbt command"
     if [[ "${attempt}" -eq "${max_retries}" ]]; then
       if ! $run_results_exists; then
         echo "dbt command failed after ${max_retries} attempts"
+        set -e
         return 1
       else
         echo "dbt command at least partially succeeded, see run artefacts for details"
+        set -e
         return 0
       fi
     else
@@ -60,12 +75,14 @@ function run_dbt() {
         cp "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results_${previous_attempt}.json"
         if dbt retry; then
           echo "dbt retry succeeded"
+          set -e
           return 0
         fi
       else
         echo "DBT run failed without artefacts, re-running full command"
         if "${DBT_COMMAND[@]}"; then
           echo "dbt command succeeded"
+          set -e
           return 0
         fi
       fi
@@ -147,71 +164,109 @@ function import_run_artefacts() {
   python "${REPOSITORY_PATH}/scripts/import_run_artefacts.py" --target "$ARTEFACT_TARGET"
 }
 
-echo "Creating virtual environment and installing dependencies"
-cd "${REPOSITORY_PATH}"
+function install_python_dependencies() {
+  echo "Creating virtual environment and installing dependencies"
+  cd "${REPOSITORY_PATH}"
 
-uv venv --python 3.12
+  uv venv --python 3.12
 
-# shellcheck disable=SC1091
-source .venv/bin/activate
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
 
-uv pip install --requirements requirements.txt
+  uv pip install --requirements requirements.txt
 
-if [ "${DBT_PROJECT}" = "sdp_tables" ]; then
-  echo "Installing SDP specific Python dependencies from requirements-sdp.txt"
-  uv pip install --force-reinstall --requirement requirements-sdp.txt --no-cache-dir
-fi
+  if [ "${DBT_PROJECT}" = "sdp_tables" ]; then
+    echo "Installing SDP specific Python dependencies from requirements-sdp.txt"
+    uv pip install --force-reinstall --requirement requirements-sdp.txt --no-cache-dir
+  fi
+}
 
-echo "Changing to project directory [ ${DBT_PROJECT} ]"
-cd "${DBT_PROJECT}"
+function enter_dbt_project() {
+  echo "Changing to project directory [ ${DBT_PROJECT} ]"
+  cd "${REPOSITORY_PATH}/${DBT_PROJECT}"
+}
 
-if [ "$DBT_PROJECT" = "hmpps_electronic_monitoring_data_tables" ]; then
+function prepare_electronic_monitoring_project() {
   echo "Generating env vars for emd project."
   python3 "${REPOSITORY_PATH}/${DBT_PROJECT}/scripts/environment.py"
   # shellcheck source=entrypoint.sh
   source "${REPOSITORY_PATH}/${DBT_PROJECT}/set_env.sh"
-  if [ "$EM_REMOVE_HISTORIC" = "True" ]; then
+
+  if is_true "${EM_REMOVE_HISTORIC}"; then
     echo "Removing historic models for EM..."
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/historic"
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/analyses"
   fi
-  if [ "$EM_REMOVE_LIVE" = "True" ]; then
+
+  if is_true "${EM_REMOVE_LIVE}"; then
     echo "Removing live models for EM..."
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/live"
   fi
-fi
+}
 
-echo "Generating models"
-python "${REPOSITORY_PATH}/scripts/generate_models.py" model_templates/ ./ --target "${DEPLOY_ENV}"
+function prepare_project_overrides() {
+  if [ "${DBT_PROJECT}" = "hmpps_electronic_monitoring_data_tables" ]; then
+    prepare_electronic_monitoring_project
+  fi
+}
 
-echo "Running dbt debug with target ${DEPLOY_ENV}"
-dbt debug --target "${DEPLOY_ENV}"
+function generate_models() {
+  echo "Generating models"
+  python "${REPOSITORY_PATH}/scripts/generate_models.py" model_templates/ ./ --target "${DEPLOY_ENV}"
+}
 
-echo "Running dbt clean"
-dbt clean
+function prepare_dbt_dependencies() {
+  echo "Running dbt debug with target ${DEPLOY_ENV}"
+  dbt debug --target "${DEPLOY_ENV}"
 
-echo "Running dbt deps"
-dbt deps
+  echo "Running dbt clean"
+  dbt clean
 
-echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ] and thread count [ ${THREAD_COUNT} ] and vars [ ${VARS:-none} ]"
+  echo "Running dbt deps"
+  dbt deps
+}
 
-if $STATE_MODE; then
-  import_run_artefacts
-  export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
-fi
+function apply_state_mode() {
+  if is_true "${STATE_MODE}"; then
+    import_run_artefacts
+    export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
+  fi
+}
 
-if [ "$WORKFLOW_NAME" = "nomis-daily" ]; then
-  nomis_setup
-fi
+function run_workflow_preflight() {
+  if [ "${WORKFLOW_NAME}" = "nomis-daily" ]; then
+    nomis_setup
+  fi
+}
 
-if run_dbt; then
-  echo "dbt run (partially) succeeded"
-  echo "Exporting run artefacts"
-  export_run_artefacts
-  exit 0
-else
-  echo "dbt run failed after 5 retries"
-  echo "Exporting run artefacts"
-  export_run_artefacts
-  exit 1
+function run_deploy() {
+  echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment [ ${DEPLOY_ENV} ] with select criteria [ ${DBT_SELECT_CRITERIA} ] and thread count [ ${THREAD_COUNT} ] and vars [ ${VARS:-none} ]"
+
+  apply_state_mode
+  run_workflow_preflight
+
+  if run_dbt; then
+    echo "dbt run (partially) succeeded"
+    echo "Exporting run artefacts"
+    export_run_artefacts
+    exit 0
+  else
+    echo "dbt run failed after 3 attempts"
+    echo "Exporting run artefacts"
+    export_run_artefacts
+    exit 1
+  fi
+}
+
+function main() {
+  install_python_dependencies
+  enter_dbt_project
+  prepare_project_overrides
+  generate_models
+  prepare_dbt_dependencies
+  run_deploy
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
 fi
