@@ -7,4 +7,3 @@
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ministryofjustice/analytical-platform-airflow-cadet-deployer)
 
 This repository contains the Airflow CaDeT image for use on the Analytical Platform.
-.
