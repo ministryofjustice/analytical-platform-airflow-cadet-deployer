@@ -15,6 +15,6 @@ jobs:
       id-token: write
       pull-requests: write
       security-events: write
-    uses: ministryofjustice/analytical-platform-airflow-github-actions/.github/workflows/shared-grype-container-scan.yml@e25799aec7782bc6bf01a56ca60329a31c2bf125
+    uses: ministryofjustice/analytical-platform-airflow-github-actions/.github/workflows/shared-grype-container-scan.yml@feat/grype-scan
     with:
       runtime: python
