@@ -6,5 +6,5 @@ readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "boto3>=1.42.94",
-    "pillow==8.1.0",
+    "pyyaml==5.3.1",
 ]
