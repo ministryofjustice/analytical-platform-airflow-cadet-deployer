@@ -20,6 +20,13 @@ export VARS="${VARS:-}"
 DEPLOY_ENV_UPPER=$(echo "${DEPLOY_ENV}" | tr '[:lower:]' '[:upper:]')
 export "DBT_${DEPLOY_ENV_UPPER}_PROFILE_WORKGROUP"="${DBT_PROFILE_WORKGROUP}"
 export DBT_PROFILE="${DBT_PROFILE:-"mojap"}"
+export SLEEP_BEFORE_RUN=30
+
+SLEEP_BEFORE_RUN="${SLEEP_BEFORE_RUN:-0}"
+if [ "${SLEEP_BEFORE_RUN}" -gt 0 ]; then
+  echo "Sleeping for ${SLEEP_BEFORE_RUN}s before running dbt..."
+  sleep "${SLEEP_BEFORE_RUN}"
+fi
 
 function run_dbt() {
   local max_retries=3
