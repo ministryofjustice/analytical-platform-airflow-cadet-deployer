@@ -25,7 +25,6 @@ export RUN_SOURCE_FRESHNESS="${RUN_SOURCE_FRESHNESS:-false}"
 export FULL_REFRESH="${FULL_REFRESH:-false}"
 
 function run_dbt() {
-  local full_refresh="${1:-}"
   local max_retries=3
   local attempt=2
   local previous_attempt=1
