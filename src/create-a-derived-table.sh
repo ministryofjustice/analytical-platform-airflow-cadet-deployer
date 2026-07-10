@@ -99,26 +99,26 @@ function run_source_freshness() {
     echo "Source freshness check passed"
     rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
   elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
-    echo "NOMIS source freshness check failed on freshness, exiting."
+    echo "Source freshness check failed on freshness, exiting."
     return 1
   else
-    echo "NOMIS source freshness check failed without running, retrying."
+    echo "Source freshness check failed without running, retrying."
     while [[ "${attempt}" -le "${max_retries}" ]]; do
       echo "Attempt ${attempt} of ${max_retries} to run NOMIS source freshness check"
       if [[ "${attempt}" -eq "${max_retries}" ]]; then
-        echo "NOMIS source freshness check failed after ${max_retries} attempts, exiting."
+        echo "Source freshness check failed after ${max_retries} attempts, exiting."
         return 1
       else
-        echo "NOMIS source freshness check failed on attempt ${attempt}, retrying"
+        echo "Source freshness check failed on attempt ${attempt}, retrying"
         if "${DBT_COMMAND[@]}"; then
-          echo "NOMIS source freshness check passed on retry"
+          echo "Source freshness check passed on retry"
           rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
           return 0
         elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
-          echo "NOMIS source freshness check failed on freshness, exiting."
+          echo "Source freshness check failed on freshness, exiting."
           return 1
         else
-          echo "NOMIS source freshness check failed on attempt ${attempt} without running, retrying."
+          echo "Source freshness check failed on attempt ${attempt} without running, retrying."
         fi
         ((attempt++))
         sleep 10 # Wait before retrying
