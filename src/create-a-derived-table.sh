@@ -36,7 +36,7 @@ function run_dbt() {
   if [ -n "${THREAD_COUNT}" ]; then
     DBT_COMMAND+=(--threads "${THREAD_COUNT}")
   fi
-  if [ "${FULL_REFRESH}" = "true" ]; then
+  if [ "${FULL_REFRESH}" = "True" ]; then
     DBT_COMMAND+=(--full-refresh)
   fi
   if [ -n "${VARS}" ]; then
@@ -165,7 +165,7 @@ function import_run_artefacts() {
 }
 
 function enforce_lake_formation() {
-  if [ "${ENFORCE_LAKE_FORMATION}" = true ]; then
+  if [ "${ENFORCE_LAKE_FORMATION}" = "True" ]; then
     echo "Enforcing lake formation permissions"
     python "${REPOSITORY_PATH}/scripts/enforce_lake_formation.py"
     return 0
@@ -227,7 +227,7 @@ if $STATE_MODE; then
   export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified"
 fi
 
-if [ "$RUN_SOURCE_FRESHNESS" = true ]; then
+if [ "$RUN_SOURCE_FRESHNESS" = "True" ]; then
   run_source_freshness
 fi
 
