@@ -162,7 +162,7 @@ function export_run_artefacts() {
 }
 
 function import_run_artefacts() {
-  ARTEFACT_TARGET=${ARTEFACT_TARGET:-"target"}
+  ARTEFACT_TARGET=${ARTEFACT_TARGET:-"$DEPLOY_ENV"}
   export ARTEFACT_TARGET
 
   python "${REPOSITORY_PATH}/scripts/import_run_artefacts.py" --target "$ARTEFACT_TARGET"
