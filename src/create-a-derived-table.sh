@@ -165,7 +165,14 @@ function import_run_artefacts() {
   ARTEFACT_TARGET=${ARTEFACT_TARGET:-"$DEPLOY_ENV"}
   export ARTEFACT_TARGET
 
-  python "${REPOSITORY_PATH}/scripts/import_run_artefacts.py" --target "$ARTEFACT_TARGET"
+  # User can override the import workflow if required,
+  # otherwise default to the current workflow name provided
+  IMPORT_WORKFLOW_NAME=${IMPORT_WORKFLOW_NAME:-"$WORKFLOW_NAME"}
+  export IMPORT_WORKFLOW_NAME
+
+  python "${REPOSITORY_PATH}/scripts/import_run_artefacts.py" \
+    --workflow "$IMPORT_WORKFLOW_NAME" \
+    --target "$ARTEFACT_TARGET"
 }
 
 function enforce_lake_formation() {
