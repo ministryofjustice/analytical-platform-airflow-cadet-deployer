@@ -114,15 +114,18 @@ function nomis_setup() {
     done
   fi
   python "${REPOSITORY_PATH}/scripts/generate_partition_queries.py" "${REPOSITORY_PATH}/${DBT_PROJECT}/model_templates/" "${REPOSITORY_PATH}/${DBT_PROJECT}" --target "${DEPLOY_ENV}" --source "nomis"
-  dbt run-operation check_if_models_exist_by_tag \
-    --args '{"tag_names":["dual_materialization","nomis_daily"], "tag_mode":"intersect"}' \
-    --target "${DEPLOY_ENV}" |
-    grep "|model_check|" |
-    sed 's/.*|model_check|*//' |
-    while read -r variable; do
-      export "$variable"="$variable"
-      echo "Added: $variable"
-    done
+
+  while read -r variable; do
+    export "${variable?}"
+    echo "Added: $variable"
+  done < <(
+    dbt run-operation check_if_models_exist_by_tag \
+      --args '{"tag_names":["dual_materialization","nomis_daily"], "tag_mode":"intersect"}' \
+      --target "${DEPLOY_ENV}" |
+      grep "|model_check|" |
+      sed 's/.*|model_check|*//'
+  )
+
   set -e
 }
 
