@@ -122,8 +122,8 @@ function nomis_setup() {
     dbt run-operation check_if_models_exist_by_tag \
       --args '{"tag_names":["dual_materialization","nomis_daily"], "tag_mode":"intersect"}' \
       --target "${DEPLOY_ENV}" |
-    grep "|model_check|" |
-    sed 's/.*|model_check|//'
+      grep "|model_check|" |
+      sed 's/.*|model_check|*//'
   )
 
   set -e
