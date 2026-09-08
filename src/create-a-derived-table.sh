@@ -108,7 +108,7 @@ function run_source_freshness() {
   else
     echo "Source freshness check failed without running, retrying."
     while [[ "${attempt}" -le "${max_retries}" ]]; do
-      echo "Attempt ${attempt} of ${max_retries} to run NOMIS source freshness check"
+      echo "Attempt ${attempt} of ${max_retries} to run source freshness check"
       if [[ "${attempt}" -eq "${max_retries}" ]]; then
         echo "Source freshness check failed after ${max_retries} attempts, exiting."
         return 1
@@ -176,13 +176,9 @@ function import_run_artefacts() {
 }
 
 function enforce_lake_formation() {
-  if [ "${ENFORCE_LAKE_FORMATION}" = "True" ]; then
-    echo "Enforcing lake formation permissions"
-    python "${REPOSITORY_PATH}/scripts/enforce_lake_formation.py"
-    return 0
-  else
-    return 0
-  fi
+  echo "Enforcing lake formation permissions"
+  python "${REPOSITORY_PATH}/scripts/enforce_lake_formation.py"
+  return 0
 }
 
 function run_unit_tests() {
@@ -266,7 +262,7 @@ dbt clean
 echo "Running dbt deps"
 dbt deps
 
-if [ "$CHECK_DUAL_MATERIALIZATION" = "True" ]; then
+if $CHECK_DUAL_MATERIALIZATION; then
   set_dual_materialization_env_vars
 fi
 
@@ -275,19 +271,19 @@ echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment 
 # Always import run artefacts
 import_run_artefacts
 
-if [ "$RUN_SOURCE_FRESHNESS" = "True" ]; then
+if $RUN_SOURCE_FRESHNESS; then
   run_source_freshness
 fi
 
-if [ "$WORKFLOW_NAME" = "nomis-daily" ]; then
+if $WORKFLOW_NAME; then
   nomis_setup
 fi
 
-if [ "${RUN_UNIT_TESTS}" = "True" ]; then
+if $RUN_UNIT_TESTS; then
   run_unit_tests
 fi
 
-if [ "${DEPLOY_MODIFIED_SEEDS}" = "True" ]; then
+if $DEPLOY_MODIFIED_SEEDS; then
   deploy_modified_seeds
 fi
 
@@ -311,7 +307,9 @@ fi
 set +e
 
 # Enforce lake formation (if set)
-enforce_lake_formation
+if $ENFORCE_LAKE_FORMATION; then
+  enforce_lake_formation
+fi
 
 echo "Exporting run artefacts"
 export_run_artefacts
