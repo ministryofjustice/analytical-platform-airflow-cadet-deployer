@@ -262,7 +262,7 @@ dbt clean
 echo "Running dbt deps"
 dbt deps
 
-if $CHECK_DUAL_MATERIALIZATION; then
+if [ "${CHECK_DUAL_MATERIALIZATION}" = "True" ]; then
   set_dual_materialization_env_vars
 fi
 
@@ -271,19 +271,19 @@ echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment 
 # Always import run artefacts
 import_run_artefacts
 
-if $RUN_SOURCE_FRESHNESS; then
+if [ "${RUN_SOURCE_FRESHNESS}" = "True" ]; then
   run_source_freshness
 fi
 
-if $WORKFLOW_NAME; then
+if [ "${WORKFLOW_NAME}" = "nomis-daily" ]; then
   nomis_setup
 fi
 
-if $RUN_UNIT_TESTS; then
+if [ "${RUN_UNIT_TESTS}" = "True" ]; then
   run_unit_tests
 fi
 
-if $DEPLOY_MODIFIED_SEEDS; then
+if [ "${DEPLOY_MODIFIED_SEEDS}" = "True" ]; then
   deploy_modified_seeds
 fi
 
@@ -307,7 +307,7 @@ fi
 set +e
 
 # Enforce lake formation (if set)
-if $ENFORCE_LAKE_FORMATION; then
+if [ "$ENFORCE_LAKE_FORMATION" = "True" ]; then
   enforce_lake_formation
 fi
 
