@@ -1,0 +1,8 @@
+---
+# Grype configuration file for container vulnerability scanning
+# https://oss.anchore.com/docs/reference/grype/configuration/
+
+# Ignore rules for known vulnerabilities that cannot be easily fixed
+ignore:
+  - vulnerability: GHSA-vxq7-64xx-v4gw # urllib3 2.7.0, fixed in 2.8.0
+  - vulnerability: GHSA-8988-9cw3-xx77 # urllib3 2.7.0, fixed in 2.8.0
