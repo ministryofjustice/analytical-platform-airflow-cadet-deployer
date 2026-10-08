@@ -6,3 +6,18 @@
 ignore:
   - vulnerability: GHSA-vxq7-64xx-v4gw # urllib3 2.7.0, fixed in 2.8.0
   - vulnerability: GHSA-8988-9cw3-xx77 # urllib3 2.7.0, fixed in 2.8.0
+  # Following lines copied from analytical-platform-airflow-python-base until AP resolve
+  - vulnerability: CVE-2026-7210
+  # Patched upstream, awaiting base image update - see README on how to check for updates.
+  - vulnerability: CVE-2026-9669
+  # vuln coming from aws cli bundled python - cannot bump python version independently
+  - vulnerability: CVE-2026-15308
+  - vulnerability: CVE-2026-11940
+  - vulnerability: CVE-2026-11972
+
+  # transitive dependency - waiting for base image update
+  - vulnerability: CVE-2026-40355
+  - vulnerability: CVE-2026-40356
+  - vulnerability: CVE-2026-59850 # libssh-4
+  - vulnerability: CVE-2026-59847 # libssh-4
+  - vulnerability: CVE-2026-54371 # libattr1
