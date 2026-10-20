@@ -208,6 +208,9 @@ def assert_success_wildcard(
         for result_id in last_status
         if fnmatchcase(result_id, pattern)
     }
+    for result_id in sorted(matched_ids):
+        logging.info("Matched wildcard unique_id: %s", result_id)  
+
     missing = [
         pattern
         for pattern in unique_ids
