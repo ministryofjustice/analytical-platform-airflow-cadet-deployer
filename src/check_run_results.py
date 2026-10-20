@@ -9,10 +9,9 @@ import logging
 import os
 import re
 import tempfile
+from fnmatch import fnmatchcase
 from pathlib import Path
 from typing import Iterable
-
-from fnmatch import fnmatchcase
 
 import boto3
 
@@ -172,9 +171,11 @@ def _index_statuses(run_results: dict) -> dict[str, str]:
             statuses[str(unique_id)] = str(status)
     return statuses
 
+
 def _check_wildcard_in_unique_ids(unique_ids: Iterable[str]) -> bool:
     """Return whether any unique_id contains a wildcard."""
     return any("*" in unique_id for unique_id in unique_ids)
+
 
 def assert_success_wildcard(
     unique_ids: Iterable[str],
@@ -191,9 +192,7 @@ def assert_success_wildcard(
             "DEPLOY_ENV and WORKFLOW_NAME are required to locate run_results files."
         )
 
-    run_results_list = _download_run_results_from_s3(
-        deploy_env, workflow_name, bucket
-    )
+    run_results_list = _download_run_results_from_s3(deploy_env, workflow_name, bucket)
 
     for run_results in run_results_list:
         statuses = _index_statuses(run_results)
