@@ -199,7 +199,7 @@ def assert_success_wildcard(
         for result_id, status in statuses.items():
             if any(fnmatchcase(result_id, pattern) for pattern in unique_ids):
                 # Preserve success if a later result file contains a retry.
-                if last_status.get(result_id) != "success":
+                if status and last_status.get(result_id) not in _ACCEPTABLE_STATUSES:
                     last_status[result_id] = status
 
     matched_ids = {
@@ -209,7 +209,7 @@ def assert_success_wildcard(
         if fnmatchcase(result_id, pattern)
     }
     for result_id in sorted(matched_ids):
-        logging.info("Matched wildcard unique_id: %s", result_id)  
+        logging.info("Matched wildcard unique_id: %s", result_id)
 
     missing = [
         pattern
@@ -219,7 +219,7 @@ def assert_success_wildcard(
     failed = [
         (result_id, last_status[result_id])
         for result_id in sorted(matched_ids)
-        if last_status[result_id] != "success"
+        if last_status[result_id] not in _ACCEPTABLE_STATUSES
     ]
 
     for pattern in missing:
