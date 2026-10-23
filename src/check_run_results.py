@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import tempfile
+from fnmatch import fnmatchcase
 from pathlib import Path
 from typing import Iterable
 
@@ -169,6 +170,70 @@ def _index_statuses(run_results: dict) -> dict[str, str]:
         if unique_id is not None and status is not None:
             statuses[str(unique_id)] = str(status)
     return statuses
+
+
+def _check_wildcard_in_unique_ids(unique_ids: Iterable[str]) -> bool:
+    """Return whether any unique_id contains a wildcard."""
+    return any("*" in unique_id for unique_id in unique_ids)
+
+
+def assert_success_wildcard(
+    unique_ids: Iterable[str],
+    bucket: str,
+    deploy_env: str | None = None,
+    workflow_name: str | None = None,
+) -> None:
+    """Assert that every requested ID or wildcard match finished successfully."""
+    unique_ids = list(unique_ids)
+    last_status: dict[str, str] = {}
+
+    if not deploy_env or not workflow_name:
+        raise ValueError(
+            "DEPLOY_ENV and WORKFLOW_NAME are required to locate run_results files."
+        )
+
+    run_results_list = _download_run_results_from_s3(deploy_env, workflow_name, bucket)
+
+    for run_results in run_results_list:
+        statuses = _index_statuses(run_results)
+        for result_id, status in statuses.items():
+            if any(fnmatchcase(result_id, pattern) for pattern in unique_ids):
+                # Preserve success if a later result file contains a retry.
+                if status and last_status.get(result_id) not in _ACCEPTABLE_STATUSES:
+                    last_status[result_id] = status
+
+    matched_ids = {
+        result_id
+        for pattern in unique_ids
+        for result_id in last_status
+        if fnmatchcase(result_id, pattern)
+    }
+    for result_id in sorted(matched_ids):
+        logging.info("Matched wildcard unique_id: %s", result_id)
+
+    missing = [
+        pattern
+        for pattern in unique_ids
+        if not any(fnmatchcase(result_id, pattern) for result_id in last_status)
+    ]
+    failed = [
+        (result_id, last_status[result_id])
+        for result_id in sorted(matched_ids)
+        if last_status[result_id] not in _ACCEPTABLE_STATUSES
+    ]
+
+    for pattern in missing:
+        logging.error("%s -> no matching unique_id found", pattern)
+    for result_id, status in failed:
+        logging.error("%s -> %s", result_id, status)
+
+    if missing or failed:
+        raise RuntimeError(
+            f"{len(missing)} pattern(s) had no matches and "
+            f"{len(failed)} matched model(s) were not successful."
+        )
+
+    print(f"All {len(matched_ids)} matched model(s) finished successfully.")
 
 
 def assert_success(
@@ -368,15 +433,26 @@ def main() -> int:
             deploy_env,
         )
 
-    logging.info("Beginning run_results validation")
-    assert_success(
-        unique_ids,
-        bucket=bucket,
-        deploy_env=deploy_env,
-        workflow_name=workflow_name,
-    )
-    logging.info("Validation completed")
-    return 0
+    if _check_wildcard_in_unique_ids(unique_ids):
+        logging.info("Beginning run_results validation with wildcard(s)")
+        assert_success_wildcard(
+            unique_ids,
+            bucket=bucket,
+            deploy_env=deploy_env,
+            workflow_name=workflow_name,
+        )
+        logging.info("Validation completed")
+        return 0
+    else:
+        logging.info("Beginning run_results validation")
+        assert_success(
+            unique_ids,
+            bucket=bucket,
+            deploy_env=deploy_env,
+            workflow_name=workflow_name,
+        )
+        logging.info("Validation completed")
+        return 0
 
 
 if __name__ == "__main__":
