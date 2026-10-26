@@ -300,7 +300,7 @@ if [ "${DEPLOY_MODIFIED_SEEDS}" = "True" ]; then
 fi
 
 # Optionally add 'state modified' to select criteria
-if $STATE_MODE; then
+if [ "$STATE_MODE}" = "True" ]; then
   echo "Adding state:modified to select criteria"
   export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified+"
 fi
