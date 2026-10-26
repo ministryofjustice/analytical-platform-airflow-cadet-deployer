@@ -36,18 +36,26 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
+  # Add pre-compliation step for compilation
   local -a DBT_COMMAND=(dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
   if [ -n "${THREAD_COUNT}" ]; then
     DBT_COMMAND+=(--threads "${THREAD_COUNT}")
-  fi
-  if [ "$STATE_MODE" = "True" ]; 
-    DBT_COMMAND+=(--state "./state")
   fi
   if [ "${FULL_REFRESH}" = "True" ]; then
     DBT_COMMAND+=(--full-refresh)
   fi
   if [ -n "${VARS}" ]; then
     DBT_COMMAND+=(--vars "${VARS}")
+  fi
+  if [ "$STATE_MODE" = "True" ];
+    if "${DBT_COMMAND/"$MODE"/compile[@]}"; then
+      echo "dbt compile succeeded"
+    else
+      echo "dbt compile failed."
+      return 1
+    fi
+    DBT_COMMAND+=(--state "./state")
+
   fi
   if "${DBT_COMMAND[@]}"; then
     echo "dbt command succeeded"
