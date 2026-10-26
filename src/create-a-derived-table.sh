@@ -48,7 +48,7 @@ function run_dbt() {
     DBT_COMMAND+=(--vars "${VARS}")
   fi
   if [ "$STATE_MODE" = "True" ]; then
-if "${DBT_COMMAND[@]/"$MODE"/compile}"; then
+    if "${DBT_COMMAND[@]/"$MODE"/compile}"; then
       echo "dbt compile succeeded"
     else
       echo "dbt compile failed."
