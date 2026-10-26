@@ -33,6 +33,9 @@ function run_dbt() {
   if [ -n "${THREAD_COUNT}" ]; then
     DBT_COMMAND+=(--threads "${THREAD_COUNT}")
   fi
+  if $STATE_MODE; then
+    DBT_COMMAND+=(--state "./state")
+  fi
   if [ -n "${VARS}" ]; then
     DBT_COMMAND+=(--vars "${VARS}")
   fi
