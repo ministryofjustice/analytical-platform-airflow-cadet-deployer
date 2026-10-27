@@ -1,0 +1,30 @@
+version: 2
+default_channel: C01H895893K
+dags:
+  - name: "prison.curated_prisons_history_model_exact_unique_id"
+    models: [
+      "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__activities_activity_minimum_education_level_wap"
+    ]
+
+  - name: "prison.curated_prisons_history_test_exact_unique_id"
+    models: [
+      "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___surrogate_key_hash.4bef28b58c"
+    ]
+
+  - name: "prison.curated_prisons_history_model_unique_id_with_wildcard"
+    models: [
+      "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__*"
+    ]
+
+  - name: "prison.curated_prisons_history_test_unique_id_with_wildcard"
+    models: [
+      "test.hmpps_digital_prisons_reporting_tables.*curated_prisons_history__*"
+    ]
+
+  - name: "prison.curated_prisons_history_mix"
+    models: [
+      "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__activities_activity_minimum_education_level_wap",
+      "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__*",
+      "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___surrogate_key_hash.4bef28b58c",
+      "test.hmpps_digital_prisons_reporting_tables.*curated_prisons_history__*"
+    ]

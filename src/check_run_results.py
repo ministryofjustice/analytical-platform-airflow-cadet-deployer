@@ -208,7 +208,8 @@ def assert_success_wildcard(
         for result_id in last_status
         if fnmatchcase(result_id, pattern)
     }
-    for result_id in sorted(matched_ids):
+    matched_ids = sorted(matched_ids)
+    for result_id in matched_ids:
         logging.info("Matched wildcard unique_id: %s", result_id)
 
     missing = [
@@ -234,6 +235,8 @@ def assert_success_wildcard(
         )
 
     print(f"All {len(matched_ids)} matched model(s) finished successfully.")
+
+    return matched_ids
 
 
 def assert_success(

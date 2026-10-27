@@ -1,0 +1,285 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/run-results/v6.json",
+    "dbt_version": "1.9.4",
+    "generated_at": "2026-08-05T16:10:45.936733Z",
+    "invocation_id": "681b7f1b-8094-4f89-8f4d-ccb28f42144d",
+    "env": {
+
+    }
+  },
+  "results": [
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-08-05T15:15:21.861716Z",
+          "completed_at": "2026-08-05T15:15:21.997177Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-08-05T15:15:22.304809Z",
+          "completed_at": "2026-08-05T15:15:39.308981Z"
+        }
+      ],
+      "thread_id": "Thread-25 (worker)",
+      "execution_time": 18.5819551944733,
+      "adapter_response": {
+        "_message": "OK 0",
+        "code": "OK",
+        "rows_affected": 0,
+        "data_scanned_in_bytes": 0
+      },
+      "message": "OK 0",
+      "failures": null,
+      "unique_id": "model.hmpps_digital_prisons_reporting_tables.preprocessed_prisons_history__activities_daily_statistics_union_upstream",
+      "compiled": true,
+      "compiled_code": "\n\n\n\n\nwith raw_archive as (\n    \n\n    -- Non-NOMIS tables or where target is not prod or prod_dev \n    -- just select all rows, filtered to those newer than the max _timestamp already loaded on incremental runs.\n    select *\n    from \"awsdatacatalog\".\"raw_archive\".\"activities_daily_statistics\"\n)\n\nselect *\nfrom raw_archive",
+      "relation_name": "\"awsdatacatalog\".\"preprocessed_prisons_history_dev_dbt\".\"activities_daily_statistics_union_upstream\"",
+      "batch_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-08-05T16:10:12.751113Z",
+          "completed_at": "2026-08-05T16:10:12.812495Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-08-05T16:10:12.823461Z",
+          "completed_at": "2026-08-05T16:10:45.888491Z"
+        }
+      ],
+      "thread_id": "Thread-14 (worker)",
+      "execution_time": 33.147319316864,
+      "adapter_response": {
+        "_message": "OK 4149957",
+        "code": "OK",
+        "rows_affected": 4149957,
+        "data_scanned_in_bytes": 388542222
+      },
+      "message": "OK 4149957",
+      "failures": null,
+      "unique_id": "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__personalrelationships_contact_address",
+      "compiled": true,
+      "compiled_code": "\n\n\n\n\nselect * from \"awsdatacatalog\".\"curated_prisons_history_dev_dbt\".\"personalrelationships_contact_address_wap\"",
+      "relation_name": "\"awsdatacatalog\".\"curated_prisons_history_dev_dbt\".\"personalrelationships_contact_address\"",
+      "batch_results": null
+    },
+    {
+      "status": "pass",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-08-05T15:40:40.325785Z",
+          "completed_at": "2026-08-05T15:40:40.384007Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-08-05T15:40:40.413902Z",
+          "completed_at": "2026-08-05T15:40:47.407524Z"
+        }
+      ],
+      "thread_id": "Thread-11 (worker)",
+      "execution_time": 7.21035814285278,
+      "adapter_response": {
+        "_message": "OK -1",
+        "code": "OK",
+        "rows_affected": -1,
+        "data_scanned_in_bytes": 0
+      },
+      "message": null,
+      "failures": 0,
+      "unique_id": "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___surrogate_key_hash.4bef28b58c",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect __surrogate_key_hash\nfrom \"awsdatacatalog\".\"curated_prisons_history_dev_dbt\".\"activities_activity_minimum_education_level_wap\"\nwhere __surrogate_key_hash is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null
+    },
+    {
+      "status": "pass",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-08-05T15:40:40.265439Z",
+          "completed_at": "2026-08-05T15:40:40.360065Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-08-05T15:40:40.400461Z",
+          "completed_at": "2026-08-05T15:40:47.413487Z"
+        }
+      ],
+      "thread_id": "Thread-16 (worker)",
+      "execution_time": 7.22057247161865,
+      "adapter_response": {
+        "_message": "OK -1",
+        "code": "OK",
+        "rows_affected": -1,
+        "data_scanned_in_bytes": 0
+      },
+      "message": null,
+      "failures": 0,
+      "unique_id": "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___source_primary_key_hash.d0aab38dab",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect __source_primary_key_hash\nfrom \"awsdatacatalog\".\"curated_prisons_history_dev_dbt\".\"activities_activity_minimum_education_level_wap\"\nwhere __source_primary_key_hash is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-08-05T15:40:32.401764Z",
+          "completed_at": "2026-08-05T15:40:36.928800Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-08-05T15:40:36.929717Z",
+          "completed_at": "2026-08-05T15:40:47.862662Z"
+        }
+      ],
+      "thread_id": "Thread-8 (worker)",
+      "execution_time": 15.5646605491638,
+      "adapter_response": {
+        "_message": "OK 11088",
+        "code": "OK",
+        "rows_affected": 11088,
+        "data_scanned_in_bytes": 866200
+      },
+      "message": "OK 11088",
+      "failures": null,
+      "unique_id": "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__sentenceplanassessmentview_goal_wap",
+      "compiled": true,
+      "compiled_code": "\n\n\n\n  \n\n\n\n-- Full Refresh Logic on deduped data\nWITH\n\ncasted_timestamps AS (\n\n    SELECT \"id\",\"sentence_plan_id\",\"area_of_need\",\"target_date\",\"status\",cast(\"status_date\" as TIMESTAMP(6)) as \"status_date\",\"created_by_user_id\",cast(\"created_at\" as TIMESTAMP(6)) as \"created_at\",cast(\"updated_at\" as TIMESTAMP(6)) as \"updated_at\",\"goal_order\",\"updated_by_user_id\",\"title_length\",\"title_hash\",\"op\",\"checkpoint_col\",\"__source_primary_key_hash\",\"__surrogate_key_hash\"\n\n,\n        -- explicitly cast this column as it may not already be a timestamp\n        CAST(_timestamp\n         AS TIMESTAMP(6))\n        AS _timestamp\n    FROM \"awsdatacatalog\".\"preprocessed_prisons_history_dev_dbt\".\"sentenceplanassessmentview_goal_deduped_view\"\n\n),\n\ncalculate_valid_to_default AS (\n\n    SELECT *,\n    CAST (TIMESTAMP '2250-01-01' AS TIMESTAMP(6))\n    AS valid_to_default\n    FROM casted_timestamps\n\n),\n\n\napply_window AS (\n\n    SELECT \"id\",\n  \"sentence_plan_id\",\n  \"area_of_need\",\n  \"target_date\",\n  \"status\",\n  \"status_date\",\n  \"created_by_user_id\",\n  \"created_at\",\n  \"updated_at\",\n  \"goal_order\",\n  \"updated_by_user_id\",\n  \"title_length\",\n  \"title_hash\",\n  \"op\",\n  \"checkpoint_col\",\n  \"__source_primary_key_hash\",\n  \"__surrogate_key_hash\",\n        _timestamp,\n        _timestamp AS __valid_from,\n    \n        CASE\n            WHEN op = 'D' THEN _timestamp\n            ELSE LEAD(_timestamp, 1, valid_to_default)\n                OVER(PARTITION BY __source_primary_key_hash\n                    ORDER BY _timestamp,checkpoint_col)\n        END AS __valid_to\n    \n    FROM calculate_valid_to_default\n\n),\n\nflag_current_records AS (\n\n    SELECT *,\n        CASE\n            WHEN  TIMESTAMP '2250-01-01' \u003C current_date THEN false\n            WHEN __valid_to = TIMESTAMP '2250-01-01' THEN true\n            ELSE false\n        END AS __current\n    FROM apply_window\n\n)\n\n\n\n    SELECT *,\n        __valid_from as mojap_start_datetime, __valid_to as mojap_end_datetime, __current as mojap_current_record\n    FROM flag_current_records\n\n\n\n\n",
+      "relation_name": "\"awsdatacatalog\".\"curated_prisons_history_dev_dbt\".\"sentenceplanassessmentview_goal_wap\"",
+      "batch_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-08-05T15:35:33.840565Z",
+          "completed_at": "2026-08-05T15:35:42.580994Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-08-05T15:35:42.582575Z",
+          "completed_at": "2026-08-05T15:35:47.637939Z"
+        }
+      ],
+      "thread_id": "Thread-24 (worker)",
+      "execution_time": 13.8061108589172,
+      "adapter_response": {
+        "_message": "OK 135",
+        "code": "OK",
+        "rows_affected": 135,
+        "data_scanned_in_bytes": 3168
+      },
+      "message": "OK 135",
+      "failures": null,
+      "unique_id": "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__activities_activity_minimum_education_level_wap",
+      "compiled": true,
+      "compiled_code": "\n\n\n\n  \n\n\n\n-- Full Refresh Logic on deduped data\nWITH\n\ncasted_timestamps AS (\n\n    SELECT \"activity_minimum_education_level_id\",\"activity_id\",\"education_level_code\",\"education_level_description\",\"study_area_code\",\"study_area_description\",\"op\",\"checkpoint_col\",\"__source_primary_key_hash\",\"__surrogate_key_hash\"\n\n,\n        -- explicitly cast this column as it may not already be a timestamp\n        CAST(_timestamp\n         AS TIMESTAMP(6))\n        AS _timestamp\n    FROM \"awsdatacatalog\".\"preprocessed_prisons_history_dev_dbt\".\"activities_activity_minimum_education_level_deduped_view\"\n\n),\n\ncalculate_valid_to_default AS (\n\n    SELECT *,\n    CAST (TIMESTAMP '2250-01-01' AS TIMESTAMP(6))\n    AS valid_to_default\n    FROM casted_timestamps\n\n),\n\n\napply_window AS (\n\n    SELECT \"activity_minimum_education_level_id\",\n  \"activity_id\",\n  \"education_level_code\",\n  \"education_level_description\",\n  \"study_area_code\",\n  \"study_area_description\",\n  \"op\",\n  \"checkpoint_col\",\n  \"__source_primary_key_hash\",\n  \"__surrogate_key_hash\",\n        _timestamp,\n        _timestamp AS __valid_from,\n    \n        CASE\n            WHEN op = 'D' THEN _timestamp\n            ELSE LEAD(_timestamp, 1, valid_to_default)\n                OVER(PARTITION BY __source_primary_key_hash\n                    ORDER BY _timestamp,checkpoint_col)\n        END AS __valid_to\n    \n    FROM calculate_valid_to_default\n\n),\n\nflag_current_records AS (\n\n    SELECT *,\n        CASE\n            WHEN  TIMESTAMP '2250-01-01' \u003C current_date THEN false\n            WHEN __valid_to = TIMESTAMP '2250-01-01' THEN true\n            ELSE false\n        END AS __current\n    FROM apply_window\n\n)\n\n\n\n    SELECT *,\n        __valid_from as mojap_start_datetime, __valid_to as mojap_end_datetime, __current as mojap_current_record\n    FROM flag_current_records\n\n\n\n\n",
+      "relation_name": "\"awsdatacatalog\".\"curated_prisons_history_dev_dbt\".\"activities_activity_minimum_education_level_wap\"",
+      "batch_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-08-05T15:35:27.746535Z",
+          "completed_at": "2026-08-05T15:35:36.715307Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-08-05T15:35:36.715833Z",
+          "completed_at": "2026-08-05T15:35:50.979906Z"
+        }
+      ],
+      "thread_id": "Thread-7 (worker)",
+      "execution_time": 23.2430624961853,
+      "adapter_response": {
+        "_message": "OK -1",
+        "code": "OK",
+        "rows_affected": -1,
+        "data_scanned_in_bytes": 0
+      },
+      "message": "OK -1",
+      "failures": null,
+      "unique_id": "model.hmpps_digital_prisons_reporting_tables.preprocessed_prisons_history__supportforadditionalneeds_elsp_review_ddv",
+      "compiled": true,
+      "compiled_code": "\n\n    SELECT \"id\",\n  \"reference\",\n  \"prison_number\",\n  \"prisoner_declined_feedback\",\n  \"review_created_by_name\",\n  \"review_created_by_job_role\",\n  \"prisoner_feedback\",\n  \"reviewer_feedback\",\n  \"created_at_prison\",\n  \"updated_at_prison\",\n  \"created_by\",\n  \"created_at\",\n  \"updated_by\",\n  \"updated_at\",\n  \"review_schedule_reference\",\n  \"op\",\n  \"_timestamp\",\n  \"checkpoint_col\",\n  \"__source_primary_key_hash\",\n  \"__surrogate_key_hash\" \n      FROM (\n        SELECT *,\n               ROW_NUMBER() OVER(PARTITION BY __surrogate_key_hash\n                ) AS row_num\n          FROM \"awsdatacatalog\".\"preprocessed_prisons_history_dev_dbt\".\"supportforadditionalneeds_elsp_review_hashes_view\"\n         WHERE _timestamp \u003C '2026-08-05 12:43:52.508517' \n    )\n     WHERE row_num = 1",
+      "relation_name": "\"awsdatacatalog\".\"preprocessed_prisons_history_dev_dbt\".\"supportforadditionalneeds_elsp_review_deduped_view\"",
+      "batch_results": null
+    }
+  ],
+  "elapsed_time": 3331.42470765114,
+  "args": {
+    "which": "build",
+    "invocation_command": "dbt build --profiles-dir /opt/analyticalplatform/create-a-derived-table/.dbt --select tag:dpr-daily,tag:model-templates --target dev --full-refresh",
+    "log_format_file": "debug",
+    "populate_cache": true,
+    "require_explicit_package_overrides_for_builtin_materializations": true,
+    "warn_error_options": {
+      "include": [],
+      "exclude": []
+    },
+    "profiles_dir": "/opt/analyticalplatform/create-a-derived-table/.dbt",
+    "introspect": true,
+    "log_level": "info",
+    "log_format": "default",
+    "quiet": false,
+    "state_modified_compare_vars": false,
+    "partial_parse_file_diff": true,
+    "state_modified_compare_more_unrendered_values": false,
+    "static_parser": true,
+    "use_colors_file": true,
+    "exclude": [],
+    "exclude_resource_types": [],
+    "require_nested_cumulative_type_params": false,
+    "log_file_max_bytes": 10485760,
+    "require_resource_names_without_spaces": false,
+    "resource_types": [],
+    "favor_state": false,
+    "full_refresh": true,
+    "indirect_selection": "eager",
+    "profile": "dpr",
+    "skip_nodes_if_on_run_start_fails": false,
+    "strict_mode": false,
+    "printer_width": 80,
+    "log_path": "/opt/analyticalplatform/create-a-derived-table/hmpps_digital_prisons_reporting_tables/logs",
+    "version_check": true,
+    "macro_debugging": false,
+    "cache_selected_only": false,
+    "partial_parse": true,
+    "export_saved_queries": false,
+    "defer": false,
+    "vars": {
+
+    },
+    "log_level_file": "debug",
+    "source_freshness_run_project_hooks": false,
+    "show": false,
+    "show_resource_report": false,
+    "project_dir": "/opt/analyticalplatform/create-a-derived-table/hmpps_digital_prisons_reporting_tables",
+    "select": [
+      "tag:dpr-daily,tag:model-templates"
+    ],
+    "send_anonymous_usage_stats": true,
+    "target": "dev",
+    "require_yaml_configuration_for_mf_time_spines": false,
+    "empty": false,
+    "require_batched_execution_for_custom_microbatch_strategy": false,
+    "include_saved_query": false,
+    "print": true,
+    "write_json": true,
+    "use_colors": true
+  }
+}
