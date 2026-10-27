@@ -239,55 +239,55 @@ def assert_success_wildcard(
     return matched_ids
 
 
-def assert_success(
-    unique_ids: Iterable[str],
-    bucket: str,
-    deploy_env: str | None = None,
-    workflow_name: str | None = None,
-) -> None:
-    """Assert that all unique_ids have a final status of 'success'."""
-    unique_ids = list(unique_ids)
-    last_status: dict[str, str] = {}
+# def assert_success(
+#     unique_ids: Iterable[str],
+#     bucket: str,
+#     deploy_env: str | None = None,
+#     workflow_name: str | None = None,
+# ) -> None:
+#     """Assert that all unique_ids have a final status of 'success'."""
+#     unique_ids = list(unique_ids)
+#     last_status: dict[str, str] = {}
 
-    if not deploy_env or not workflow_name:
-        raise ValueError(
-            "DEPLOY_ENV and WORKFLOW_NAME are required to locate run_results files."
-        )
+#     if not deploy_env or not workflow_name:
+#         raise ValueError(
+#             "DEPLOY_ENV and WORKFLOW_NAME are required to locate run_results files."
+#         )
 
-    run_results_list = _download_run_results_from_s3(deploy_env, workflow_name, bucket)
+#     run_results_list = _download_run_results_from_s3(deploy_env, workflow_name, bucket)
 
-    for run_results in run_results_list:
-        statuses = _index_statuses(run_results)
-        for unique_id in unique_ids:
-            status = statuses.get(unique_id)
-            # Only update if found and not already succeeded
-            if status and last_status.get(unique_id) != "success":
-                last_status[unique_id] = status
+#     for run_results in run_results_list:
+#         statuses = _index_statuses(run_results)
+#         for unique_id in unique_ids:
+#             status = statuses.get(unique_id)
+#             # Only update if found and not already succeeded
+#             if status and last_status.get(unique_id) != "success":
+#                 last_status[unique_id] = status
 
-    missing: list[str] = []
-    failed: list[tuple[str, str]] = []
+#     missing: list[str] = []
+#     failed: list[tuple[str, str]] = []
 
-    for unique_id in unique_ids:
-        status = last_status.get(unique_id)
-        if status is None:
-            logging.error("%s -> not found", unique_id)
-            missing.append(unique_id)
-        elif status != "success":
-            logging.error("%s -> %s", unique_id, status)
-            failed.append((unique_id, status))
+#     for unique_id in unique_ids:
+#         status = last_status.get(unique_id)
+#         if status is None:
+#             logging.error("%s -> not found", unique_id)
+#             missing.append(unique_id)
+#         elif status != "success":
+#             logging.error("%s -> %s", unique_id, status)
+#             failed.append((unique_id, status))
 
-    if missing or failed:
-        parts: list[str] = []
-        if missing:
-            parts.append(f"{len(missing)} missing")
-        if failed:
-            parts.append(f"{len(failed)} non-success")
-        raise RuntimeError(
-            f"{', '.join(parts)} out of {len(unique_ids)} unique_id(s) "
-            f"(see ERROR lines above)."
-        )
+#     if missing or failed:
+#         parts: list[str] = []
+#         if missing:
+#             parts.append(f"{len(missing)} missing")
+#         if failed:
+#             parts.append(f"{len(failed)} non-success")
+#         raise RuntimeError(
+#             f"{', '.join(parts)} out of {len(unique_ids)} unique_id(s) "
+#             f"(see ERROR lines above)."
+#         )
 
-    print(f"All {len(unique_ids)} unique_id(s) finished with status=success.")
+#     print(f"All {len(unique_ids)} unique_id(s) finished with status=success.")
 
 
 def assert_all_models_tests_success(
@@ -436,26 +436,26 @@ def main() -> int:
             deploy_env,
         )
 
-    if _check_wildcard_in_unique_ids(unique_ids):
-        logging.info("Beginning run_results validation with wildcard(s)")
-        assert_success_wildcard(
-            unique_ids,
-            bucket=bucket,
-            deploy_env=deploy_env,
-            workflow_name=workflow_name,
-        )
-        logging.info("Validation completed")
-        return 0
-    else:
-        logging.info("Beginning run_results validation")
-        assert_success(
-            unique_ids,
-            bucket=bucket,
-            deploy_env=deploy_env,
-            workflow_name=workflow_name,
-        )
-        logging.info("Validation completed")
-        return 0
+    # if _check_wildcard_in_unique_ids(unique_ids):
+    #     logging.info("Beginning run_results validation with wildcard(s)")
+    assert_success_wildcard(
+        unique_ids,
+        bucket=bucket,
+        deploy_env=deploy_env,
+        workflow_name=workflow_name,
+    )
+    logging.info("Validation completed")
+    return 0
+    # else:
+    #     logging.info("Beginning run_results validation")
+    #     assert_success(
+    #         unique_ids,
+    #         bucket=bucket,
+    #         deploy_env=deploy_env,
+    #         workflow_name=workflow_name,
+    #     )
+    #     logging.info("Validation completed")
+    #     return 0
 
 
 if __name__ == "__main__":
