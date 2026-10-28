@@ -17,7 +17,7 @@ def run_results_json():
 
 
 @pytest.mark.parametrize(
-    "dataset_target,unique_id",
+    "dataset_target,patterns",
     [   
         (
             "prison.curated_prisons_history_model_unique_id_with_wildcard",
@@ -45,10 +45,24 @@ def run_results_json():
             [
                 "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___surrogate_key_hash.4bef28b58c"
             ]
+        ),
+        (
+            "prison.curated_prisons_history_mix",
+            [
+                "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__personalrelationships_contact_address",
+                "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__sentenceplanassessmentview_goal_wap",
+                "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__activities_activity_minimum_education_level_wap",
+                "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___surrogate_key_hash.4bef28b58c",
+                "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___source_primary_key_hash.d0aab38dab"
+            ]
+        ),
+        (
+            "prison.curated_prisons_history_model_exact_unique_id_fail",
+            []
         )
     ],
 )
-def test_assert_success_wildcard(dataset_target, unique_id, run_results_json, monkeypatch):
+def test_assert_success(dataset_target, patterns, run_results_json, monkeypatch):
     def fake_download_run_results(deploy_env, workflow_name, bucket):
         return [run_results_json]
 
@@ -63,11 +77,14 @@ def test_assert_success_wildcard(dataset_target, unique_id, run_results_json, mo
         dataset_target,
     )
 
-    matched_ids = check_run_results.assert_success_wildcard(
-        unique_ids,
-        bucket="test-bucket",
-        deploy_env="dev",
-        workflow_name="test-workflow",
-    )
+    try:
+        matched_ids = check_run_results.assert_success(
+            unique_ids,
+            bucket="test-bucket",
+            deploy_env="dev",
+            workflow_name="test-workflow",
+        )
+    except RuntimeError as e:
+        matched_ids = set()
 
-    assert matched_ids == sorted(set(unique_id))
+    assert matched_ids == set(sorted(patterns))

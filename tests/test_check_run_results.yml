@@ -6,6 +6,11 @@ dags:
       "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__activities_activity_minimum_education_level_wap"
     ]
 
+  - name: "prison.curated_prisons_history_model_exact_unique_id_fail"
+    models: [
+      "model.hmpps_digital_prisons_reporting_tables.curated_prisons_history__activities_activity_minimum_education_level"
+    ]
+
   - name: "prison.curated_prisons_history_test_exact_unique_id"
     models: [
       "test.hmpps_digital_prisons_reporting_tables.not_null_curated_prisons_history__activities_activity_minimum_education_level_wap___surrogate_key_hash.4bef28b58c"
