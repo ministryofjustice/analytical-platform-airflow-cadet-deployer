@@ -51,5 +51,6 @@ if [ "${RUN_IN_DF}" != "True" ]; then
   ./create-a-derived-table.sh
 else
   echo "=== Running create-a-derived-table.sh and dataset_check ==="
-  ./create-a-derived-table.sh || dataset_check
+  ./create-a-derived-table.sh
+  dataset_check
 fi
