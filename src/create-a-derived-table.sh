@@ -163,6 +163,12 @@ function export_run_artefacts() {
 }
 
 function import_run_artefacts() {
+  # SDP does not export S3 run artefacts and its Synapse profile has no s3_data_dir
+  if [ "${DBT_PROJECT}" = "sdp_tables" ]; then
+    echo "Skipping import of run artefacts for project sdp_tables"
+    return 0
+  fi
+
   ARTEFACT_TARGET=${ARTEFACT_TARGET:-"$DEPLOY_ENV"}
   export ARTEFACT_TARGET
 
