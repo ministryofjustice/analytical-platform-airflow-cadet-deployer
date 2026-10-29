@@ -51,6 +51,11 @@ if [ "${RUN_IN_DF}" != "True" ]; then
   ./create-a-derived-table.sh
 else
   echo "=== Running create-a-derived-table.sh and dataset_check ==="
-  ./create-a-derived-table.sh
+  if ./create-a-derived-table.sh; then
+    echo "=== create-a-derived-table.sh succeeded; running dataset check ==="
+  else
+    deploy_exit=$?
+    echo "=== create-a-derived-table.sh failed (exit ${deploy_exit}); running dataset check to determine task status ==="
+  fi
   dataset_check
 fi
