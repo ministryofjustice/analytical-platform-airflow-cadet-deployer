@@ -36,6 +36,7 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
+  # Add pre-compliation step for compilation
   local -a DBT_COMMAND=(dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
   if [ -n "${THREAD_COUNT}" ]; then
     DBT_COMMAND+=(--threads "${THREAD_COUNT}")
@@ -45,6 +46,16 @@ function run_dbt() {
   fi
   if [ -n "${VARS}" ]; then
     DBT_COMMAND+=(--vars "${VARS}")
+  fi
+  if [ "$STATE_MODE" = "True" ]; then
+    if "${DBT_COMMAND[@]/"$MODE"/compile}"; then
+      echo "dbt compile succeeded"
+    else
+      echo "dbt compile failed."
+      return 1
+    fi
+    DBT_COMMAND+=(--state "./state")
+
   fi
   if "${DBT_COMMAND[@]}"; then
     echo "dbt command succeeded"
@@ -295,7 +306,7 @@ if [ "${DEPLOY_MODIFIED_SEEDS}" = "True" ]; then
 fi
 
 # Optionally add 'state modified' to select criteria
-if $STATE_MODE; then
+if [ "${STATE_MODE}" = "True" ]; then
   echo "Adding state:modified to select criteria"
   export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified+"
 fi
