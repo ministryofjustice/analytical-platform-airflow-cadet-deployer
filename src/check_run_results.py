@@ -9,8 +9,9 @@ import logging
 import os
 import re
 import tempfile
+from fnmatch import fnmatchcase
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Set
 
 import boto3
 
@@ -23,6 +24,8 @@ DEFAULT_S3_BUCKET = "mojap-derived-tables"
 # dbt models finish with 'success'; tests finish with 'pass' or 'warn'.
 # All three are considered acceptable (non-failure) statuses.
 _ACCEPTABLE_STATUSES = frozenset({"success", "pass", "warn"})
+_ACCEPTABLE_STATUSES_MODEL = frozenset({"success"})
+_ACCEPTABLE_STATUSES_TEST = frozenset({"pass", "warn"})
 
 
 def _normalize_unique_id(value: str) -> str:
@@ -171,13 +174,18 @@ def _index_statuses(run_results: dict) -> dict[str, str]:
     return statuses
 
 
+def _is_test_pattern(pattern: str) -> bool:
+    return pattern.startswith("test.")
+
+
 def assert_success(
     unique_ids: Iterable[str],
     bucket: str,
     deploy_env: str | None = None,
     workflow_name: str | None = None,
-) -> None:
-    """Assert that all unique_ids have a final status of 'success'."""
+) -> Set:
+    """Assert that every requested ID or wildcard match finished successfully."""
+
     unique_ids = list(unique_ids)
     last_status: dict[str, str] = {}
 
@@ -190,36 +198,60 @@ def assert_success(
 
     for run_results in run_results_list:
         statuses = _index_statuses(run_results)
-        for unique_id in unique_ids:
-            status = statuses.get(unique_id)
-            # Only update if found and not already succeeded
-            if status and last_status.get(unique_id) != "success":
-                last_status[unique_id] = status
+        for result_id, status in statuses.items():
+            # Check each pattern to see if the current result_id matches it
+            for pattern in unique_ids:
+                if fnmatchcase(result_id, pattern):
+                    # Determine the acceptable statuses based on whether the pattern is a test or model
+                    acceptable_statuses = (
+                        _ACCEPTABLE_STATUSES_TEST
+                        if _is_test_pattern(pattern)
+                        else _ACCEPTABLE_STATUSES_MODEL
+                    )
+                    # Preserve success if a later result file contains a retry.
+                    if status and last_status.get(result_id) not in acceptable_statuses:
+                        last_status[result_id] = status
 
-    missing: list[str] = []
-    failed: list[tuple[str, str]] = []
+    matched_ids = {
+        result_id
+        for pattern in unique_ids
+        for result_id in last_status
+        if fnmatchcase(result_id, pattern)
+    }
+    matched_ids = set(sorted(matched_ids))
+    for result_id in matched_ids:
+        logging.info("Matched unique_id: %s", result_id)
 
-    for unique_id in unique_ids:
-        status = last_status.get(unique_id)
-        if status is None:
-            logging.error("%s -> not found", unique_id)
-            missing.append(unique_id)
-        elif status != "success":
-            logging.error("%s -> %s", unique_id, status)
-            failed.append((unique_id, status))
+    missing = [
+        pattern
+        for pattern in unique_ids
+        if not any(fnmatchcase(result_id, pattern) for result_id in last_status)
+    ]
+    failed = [
+        (result_id, last_status[result_id])
+        for result_id in matched_ids
+        if last_status[result_id]
+        not in (
+            _ACCEPTABLE_STATUSES_TEST
+            if _is_test_pattern(result_id)
+            else _ACCEPTABLE_STATUSES_MODEL
+        )
+    ]
+
+    for pattern in missing:
+        logging.error("%s -> no matching unique_id found", pattern)
+    for result_id, status in failed:
+        logging.error("%s -> %s", result_id, status)
 
     if missing or failed:
-        parts: list[str] = []
-        if missing:
-            parts.append(f"{len(missing)} missing")
-        if failed:
-            parts.append(f"{len(failed)} non-success")
         raise RuntimeError(
-            f"{', '.join(parts)} out of {len(unique_ids)} unique_id(s) "
-            f"(see ERROR lines above)."
+            f"{len(missing)} pattern(s) had no matches and "
+            f"{len(failed)} matched model(s) were not successful."
         )
 
-    print(f"All {len(unique_ids)} unique_id(s) finished with status=success.")
+    print(f"All {len(matched_ids)} matched model(s) finished successfully.")
+
+    return matched_ids
 
 
 def assert_all_models_tests_success(
@@ -368,7 +400,6 @@ def main() -> int:
             deploy_env,
         )
 
-    logging.info("Beginning run_results validation")
     assert_success(
         unique_ids,
         bucket=bucket,
