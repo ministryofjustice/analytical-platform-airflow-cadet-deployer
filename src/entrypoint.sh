@@ -39,9 +39,7 @@ fi
 if [ "${RUN_IN_DF}" != "True" ]; then
   echo "=== Running clone-create-a-derived-table.sh ==="
   ./clone-create-a-derived-table.sh
-fi
 
-if [ "${RUN_IN_DF}" != "True" ]; then
   echo "=== Am I running a dataset check? ${IS_DATASET_CHECK} ==="
   if [ "${IS_DATASET_CHECK}" = "True" ]; then
     dataset_check
