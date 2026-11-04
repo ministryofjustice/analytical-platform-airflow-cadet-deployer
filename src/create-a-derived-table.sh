@@ -36,7 +36,6 @@ function run_dbt() {
 
   # Disable immediate exit on error for the loop
   set +e
-  # Add pre-compliation step for compilation
   local -a DBT_COMMAND=(dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
   if [ -n "${THREAD_COUNT}" ]; then
     DBT_COMMAND+=(--threads "${THREAD_COUNT}")
@@ -48,7 +47,17 @@ function run_dbt() {
     DBT_COMMAND+=(--vars "${VARS}")
   fi
   if [ "$STATE_MODE" = "True" ]; then
-    if "${DBT_COMMAND[@]/"$MODE"/compile}"; then
+    local -a COMPILE_COMMAND=(dbt compile --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
+    if [ -n "${THREAD_COUNT}" ]; then
+      COMPILE_COMMAND+=(--threads "${THREAD_COUNT}")
+    fi
+    if [ "${FULL_REFRESH}" = "True" ]; then
+      COMPILE_COMMAND+=(--full-refresh)
+    fi
+    if [ -n "${VARS}" ]; then
+      COMPILE_COMMAND+=(--vars "${VARS}")
+    fi
+    if "${COMPILE_COMMAND[@]}"; then
       echo "dbt compile succeeded"
     else
       echo "dbt compile failed."
@@ -216,16 +225,15 @@ function deploy_modified_seeds() {
 function set_dual_materialization_env_vars() {
   echo "Checking for models with dual materialization config"
 
-  while IFS='=' read -r name value; do
-    export "$name=$value"
-    echo "Added: $name=$value"
-  done < <(
-    dbt run-operation check_if_models_exist_by_tag \
-      --args '{"tag_names":["dual_materialization"], "tag_mode":"intersect"}' \
-      --target "$DEPLOY_ENV" |
-      grep "|model_check|" |
-      sed 's/.*|model_check|//'
-  )
+  dbt run-operation check_if_models_exist_by_tag \
+    --args '{"tag_names":["dual_materialization"], "tag_mode":"intersect"}' \
+    --target "$DEPLOY_ENV" |
+    grep "|model_check|" |
+    sed 's/.*|model_check|//' |
+    while IFS='=' read -r name value; do
+      export "$name=$value"
+      echo "Added: $name=$value"
+    done
 }
 
 echo "Creating virtual environment and installing dependencies"
