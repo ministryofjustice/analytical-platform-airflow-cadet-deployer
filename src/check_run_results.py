@@ -22,7 +22,7 @@ DEFAULT_S3_BUCKET = "mojap-derived-tables"
 
 # dbt models finish with 'success'; tests finish with 'pass' or 'warn'.
 # All three are considered acceptable (non-failure) statuses.
-_ACCEPTABLE_STATUSES = frozenset({"success", "pass", "warn"})
+_ACCEPTABLE_STATUSES = frozenset({"success", "pass", "warn", "skipped"})
 
 
 def _normalize_unique_id(value: str) -> str:
