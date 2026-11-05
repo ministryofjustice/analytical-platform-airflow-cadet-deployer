@@ -47,7 +47,7 @@ function run_dbt() {
     DBT_COMMAND+=(--vars "${VARS}")
   fi
   if [ "$STATE_MODE" = "True" ]; then
-    local -a COMPILE_COMMAND=(dbt compile --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
+    local -a COMPILE_COMMAND=(dbt compile --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV} --state ./state")
     if [ -n "${THREAD_COUNT}" ]; then
       COMPILE_COMMAND+=(--threads "${THREAD_COUNT}")
     fi
