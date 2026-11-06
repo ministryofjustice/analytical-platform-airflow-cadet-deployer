@@ -225,15 +225,16 @@ function deploy_modified_seeds() {
 function set_dual_materialization_env_vars() {
   echo "Checking for models with dual materialization config"
 
-  dbt run-operation check_if_models_exist_by_tag \
-    --args '{"tag_names":["dual_materialization"], "tag_mode":"intersect"}' \
-    --target "$DEPLOY_ENV" |
-    grep "|model_check|" |
-    sed 's/.*|model_check|//' |
-    while IFS='=' read -r name value; do
-      export "$name=$value"
-      echo "Added: $name=$value"
-    done
+  while IFS='=' read -r name value; do
+    export "$name=$value"
+    echo "Added: $name=$value"
+  done < <(
+    dbt run-operation check_if_models_exist_by_tag \
+      --args '{"tag_names":["dual_materialization"], "tag_mode":"intersect"}' \
+      --target "$DEPLOY_ENV" |
+      grep "|model_check|" |
+      sed 's/.*|model_check|//'
+  )
 }
 
 echo "Creating virtual environment and installing dependencies"
