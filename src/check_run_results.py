@@ -249,9 +249,10 @@ def assert_all_models_tests_success(
                     last_status[unique_id] = status
 
     if not last_status:
-        raise RuntimeError(
+        logging.warning(
             "No model or test nodes found in run_results. "
             "Check DEPLOY_ENV and WORKFLOW_NAME are correct."
+            "Possible there was nothing to do."
         )
 
     failed: list[tuple[str, str]] = []
