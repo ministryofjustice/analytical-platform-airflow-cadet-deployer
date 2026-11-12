@@ -46,6 +46,26 @@ function run_dbt() {
   if [ -n "${VARS}" ]; then
     DBT_COMMAND+=(--vars "${VARS}")
   fi
+  if [ "$STATE_MODE" = "True" ]; then
+    local -a COMPILE_COMMAND=(dbt compile --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}" --state "./state")
+    if [ -n "${THREAD_COUNT}" ]; then
+      COMPILE_COMMAND+=(--threads "${THREAD_COUNT}")
+    fi
+    if [ "${FULL_REFRESH}" = "True" ]; then
+      COMPILE_COMMAND+=(--full-refresh)
+    fi
+    if [ -n "${VARS}" ]; then
+      COMPILE_COMMAND+=(--vars "${VARS}")
+    fi
+    if "${COMPILE_COMMAND[@]}"; then
+      echo "dbt compile succeeded"
+    else
+      echo "dbt compile failed."
+      return 1
+    fi
+    DBT_COMMAND+=(--state "./state")
+
+  fi
   if "${DBT_COMMAND[@]}"; then
     echo "dbt command succeeded"
     return 0
@@ -295,9 +315,9 @@ if [ "${DEPLOY_MODIFIED_SEEDS}" = "True" ]; then
 fi
 
 # Optionally add 'state modified' to select criteria
-if $STATE_MODE; then
+if [ "${STATE_MODE}" = "True" ]; then
   echo "Adding state:modified to select criteria"
-  export DBT_SELECT_CRITERIA="{$DBT_SELECT_CRITERIA},state:modified+"
+  export DBT_SELECT_CRITERIA="$DBT_SELECT_CRITERIA,state:modified+"
 fi
 
 # Init run_dbt
