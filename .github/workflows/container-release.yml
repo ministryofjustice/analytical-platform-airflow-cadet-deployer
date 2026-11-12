@@ -1,5 +1,5 @@
 ---
-name: 🔖 Container Release
+name: 🔖 Public Image Release
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
 permissions: {}
 
 jobs:
-  container-release:
-    name: Container Release
+  public-image-release:
+    name: Public Image Release
     permissions:
       actions: read
       attestations: write
