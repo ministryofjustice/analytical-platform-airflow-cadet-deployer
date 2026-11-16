@@ -41,6 +41,7 @@ function run_dbt() {
     DBT_COMMAND+=(--threads "${THREAD_COUNT}")
   fi
   if [ "${FULL_REFRESH}" = "True" ]; then
+    echo "Running full refresh..."
     DBT_COMMAND+=(--full-refresh)
   fi
   if [ -n "${VARS}" ]; then
