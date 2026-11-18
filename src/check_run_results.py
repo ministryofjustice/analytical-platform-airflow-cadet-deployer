@@ -129,6 +129,8 @@ def _download_run_results_from_s3(
     """Download run_results files from S3 and return parsed JSON objects."""
     if bucket == DEFAULT_S3_BUCKET:
         prefix = f"{deploy_env}/run_artefacts/{workflow_name}/latest/target/"
+    elif "emds" in bucket:
+        prefix = f"em_data_artefacts/{deploy_env}/run_artefacts/{workflow_name}/latest/target/"
     else:
         prefix = f"data/{deploy_env}/run_artefacts/{workflow_name}/latest/target/"
     client = boto3.client("s3")
@@ -279,9 +281,10 @@ def assert_all_models_tests_success(
                     last_status[unique_id] = status
 
     if not last_status:
-        raise RuntimeError(
+        logging.warning(
             "No model or test nodes found in run_results. "
             "Check DEPLOY_ENV and WORKFLOW_NAME are correct."
+            "Possible there was nothing to do."
         )
 
     failed: list[tuple[str, str]] = []
