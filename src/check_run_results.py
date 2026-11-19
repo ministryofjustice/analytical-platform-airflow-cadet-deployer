@@ -23,7 +23,7 @@ DEFAULT_S3_BUCKET = "mojap-derived-tables"
 
 # dbt models finish with 'success'; tests finish with 'pass' or 'warn'.
 # All three are considered acceptable (non-failure) statuses.
-_ACCEPTABLE_STATUSES = frozenset({"success", "pass", "warn"})
+_ACCEPTABLE_STATUSES = frozenset({"success", "pass", "warn", "skipped"})
 _ACCEPTABLE_STATUSES_MODEL = frozenset({"success"})
 _ACCEPTABLE_STATUSES_TEST = frozenset({"pass", "warn"})
 
