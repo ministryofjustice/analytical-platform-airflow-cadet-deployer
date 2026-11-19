@@ -18,7 +18,7 @@ def run_results_json():
 
 @pytest.mark.parametrize(
     "dataset_target,patterns",
-    [   
+    [
         (
             "prison.curated_prisons_history_model_unique_id_with_wildcard",
             [

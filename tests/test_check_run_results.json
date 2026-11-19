@@ -4,9 +4,7 @@
     "dbt_version": "1.9.4",
     "generated_at": "2026-08-05T16:10:45.936733Z",
     "invocation_id": "681b7f1b-8094-4f89-8f4d-ccb28f42144d",
-    "env": {
-
-    }
+    "env": {}
   },
   "results": [
     {
@@ -261,17 +259,13 @@
     "partial_parse": true,
     "export_saved_queries": false,
     "defer": false,
-    "vars": {
-
-    },
+    "vars": {},
     "log_level_file": "debug",
     "source_freshness_run_project_hooks": false,
     "show": false,
     "show_resource_report": false,
     "project_dir": "/opt/analyticalplatform/create-a-derived-table/hmpps_digital_prisons_reporting_tables",
-    "select": [
-      "tag:dpr-daily,tag:model-templates"
-    ],
+    "select": ["tag:dpr-daily,tag:model-templates"],
     "send_anonymous_usage_stats": true,
     "target": "dev",
     "require_yaml_configuration_for_mf_time_spines": false,
