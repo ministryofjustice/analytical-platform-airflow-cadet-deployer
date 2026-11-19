@@ -207,7 +207,7 @@ def assert_success(
                     # Determine the acceptable statuses based on whether the pattern is a test or model
                     acceptable_statuses = (
                         _ACCEPTABLE_STATUSES_TEST
-                        if _is_test_pattern(pattern)
+                        if _is_test_pattern(result_id)
                         else _ACCEPTABLE_STATUSES_MODEL
                     )
                     # Preserve success if a later result file contains a retry.
