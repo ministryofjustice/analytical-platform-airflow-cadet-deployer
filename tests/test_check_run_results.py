@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-sys.path.append("../src/")
 import check_run_results
 
 TEST_DIR = Path(__file__).parent
 
 
-@pytest.fixture
-def run_results_json():
+@pytest.fixture(name="run_results_json")
+def run_results_json_fixture():
+    """Load the run-results JSON fixture."""
     fixture_path = TEST_DIR / "test_check_run_results.json"
     return json.loads(fixture_path.read_text(encoding="utf-8"))
 
@@ -84,7 +84,8 @@ def run_results_json():
     ],
 )
 def test_assert_success(dataset_target, patterns, run_results_json, monkeypatch):
-    def fake_download_run_results(deploy_env, workflow_name, bucket):
+    """Check that matching result IDs are returned for each target pattern."""
+    def fake_download_run_results(*_args, **_kwargs):
         return [run_results_json]
 
     monkeypatch.setattr(
@@ -92,11 +93,12 @@ def test_assert_success(dataset_target, patterns, run_results_json, monkeypatch)
         "_download_run_results_from_s3",
         fake_download_run_results,
     )
-
+    # pylint: disable=protected-access
     unique_ids = check_run_results._parse_unique_ids_yaml(
         TEST_DIR / "test_check_run_results.yml",
         dataset_target,
     )
+    # pylint: enable=protected-access
 
     try:
         matched_ids = check_run_results.assert_success(
@@ -105,7 +107,7 @@ def test_assert_success(dataset_target, patterns, run_results_json, monkeypatch)
             deploy_env="dev",
             workflow_name="test-workflow",
         )
-    except RuntimeError as e:
+    except RuntimeError:
         matched_ids = set()
 
     assert matched_ids == set(sorted(patterns))
