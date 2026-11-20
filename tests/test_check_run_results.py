@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-import check_run_results
+import check_run_results # pylint: disable=wrong-import-order
 import pytest
 
 TEST_DIR = Path(__file__).parent
