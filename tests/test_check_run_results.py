@@ -1,8 +1,10 @@
+"""Tests for check_run_results.py wildcard functionality"""
+
 import json
+import pytest
 from pathlib import Path
 
 import check_run_results
-import pytest
 
 TEST_DIR = Path(__file__).parent
 
