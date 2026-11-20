@@ -204,7 +204,8 @@ def assert_success(
             # Check each pattern to see if the current result_id matches it
             for pattern in unique_ids:
                 if fnmatchcase(result_id, pattern):
-                    # Determine the acceptable statuses based on whether the pattern is a test or model
+                    # Determine the acceptable statuses based on whether the pattern is
+                    # a test or model
                     acceptable_statuses = (
                         _ACCEPTABLE_STATUSES_TEST
                         if _is_test_pattern(result_id)

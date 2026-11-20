@@ -1,10 +1,8 @@
 import json
-import sys
 from pathlib import Path
 
-import pytest
-
 import check_run_results
+import pytest
 
 TEST_DIR = Path(__file__).parent
 
@@ -85,6 +83,7 @@ def run_results_json_fixture():
 )
 def test_assert_success(dataset_target, patterns, run_results_json, monkeypatch):
     """Check that matching result IDs are returned for each target pattern."""
+
     def fake_download_run_results(*_args, **_kwargs):
         return [run_results_json]
 
