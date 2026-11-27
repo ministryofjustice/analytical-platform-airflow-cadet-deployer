@@ -1,8 +1,12 @@
 .env
 .terraform/
 coverage/
+.venv/
 venv/
 env/
+__pycache__/
+*.py[cod]
+.DS_Store
 .DS_STORE
 .vscode
 *.code-workspace

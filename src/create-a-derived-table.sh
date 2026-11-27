@@ -28,31 +28,34 @@ export DEPLOY_MODIFIED_SEEDS="${DEPLOY_MODIFIED_SEEDS:-false}"
 export DBT_STATE_DIR="${DBT_STATE_DIR:-"./state"}"
 export CHECK_DUAL_MATERIALIZATION="${CHECK_DUAL_MATERIALIZATION:-false}"
 
+function is_true() {
+  [[ "${1,,}" == "true" ]]
+}
+
 function run_dbt() {
-  local max_retries=3
+  local max_attempts=3
   local attempt=2
   local previous_attempt=1
   local run_results_exists=false
+  local target_dir="${REPOSITORY_PATH}/${DBT_PROJECT}/target"
 
-  # Disable immediate exit on error for the loop
-  set +e
   local -a DBT_COMMAND=(dbt "${MODE}" --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}")
   if [ -n "${THREAD_COUNT}" ]; then
     DBT_COMMAND+=(--threads "${THREAD_COUNT}")
   fi
-  if [ "${FULL_REFRESH}" = "True" ]; then
+  if is_true "${FULL_REFRESH}"; then
     echo "Running full refresh..."
     DBT_COMMAND+=(--full-refresh)
   fi
   if [ -n "${VARS}" ]; then
     DBT_COMMAND+=(--vars "${VARS}")
   fi
-  if [ "$STATE_MODE" = "True" ]; then
+  if is_true "${STATE_MODE}"; then
     local -a COMPILE_COMMAND=(dbt compile --profiles-dir "${REPOSITORY_PATH}/.dbt" --select "${DBT_SELECT_CRITERIA}" --target "${DEPLOY_ENV}" --state "./state")
     if [ -n "${THREAD_COUNT}" ]; then
       COMPILE_COMMAND+=(--threads "${THREAD_COUNT}")
     fi
-    if [ "${FULL_REFRESH}" = "True" ]; then
+    if is_true "${FULL_REFRESH}"; then
       COMPILE_COMMAND+=(--full-refresh)
     fi
     if [ -n "${VARS}" ]; then
@@ -65,54 +68,55 @@ function run_dbt() {
       return 1
     fi
     DBT_COMMAND+=(--state "./state")
-
   fi
+
+  echo "Attempt 1 of ${max_attempts} to run dbt command"
   if "${DBT_COMMAND[@]}"; then
     echo "dbt command succeeded"
     return 0
-  else
-    echo "dbt command failed, attempting to dbt retry..."
   fi
-  while [[ "${attempt}" -le "${max_retries}" ]]; do
-    echo "Attempt ${attempt} of ${max_retries} to run dbt command"
-    if [[ "${attempt}" -eq "${max_retries}" ]]; then
-      if ! $run_results_exists; then
-        echo "dbt command failed after ${max_retries} attempts"
-        return 1
-      else
-        echo "dbt command at least partially succeeded, see run artefacts for details"
+  echo "dbt command failed on attempt 1, attempting to retry..."
+
+  while [[ "${attempt}" -le "${max_attempts}" ]]; do
+    sleep 10 # Wait before retrying
+    echo "Attempt ${attempt} of ${max_attempts} to run dbt command"
+    if [[ -f "${target_dir}/run_results.json" ]]; then
+      run_results_exists=true
+      echo "run_results.json exists is ${run_results_exists}"
+      cp "${target_dir}/run_results.json" "${target_dir}/run_results_${previous_attempt}.json"
+      if dbt retry; then
+        echo "dbt retry succeeded"
         return 0
       fi
     else
-      echo "dbt command failed on attempt ${attempt}, retrying"
-      if [[ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]]; then
-        run_results_exists=true
-        echo "run_results.json exists is ${run_results_exists}"
-        cp "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results_${previous_attempt}.json"
-        if dbt retry; then
-          echo "dbt retry succeeded"
-          return 0
-        fi
-      else
-        echo "DBT run failed without artefacts, re-running full command"
-        if "${DBT_COMMAND[@]}"; then
-          echo "dbt command succeeded"
-          return 0
-        fi
+      echo "DBT run failed without artefacts, re-running full command"
+      if "${DBT_COMMAND[@]}"; then
+        echo "dbt command succeeded"
+        return 0
       fi
-      ((attempt++))
-      ((previous_attempt++))
-      sleep 10 # Wait before retrying
     fi
+
+    if [[ -f "${target_dir}/run_results.json" ]]; then
+      run_results_exists=true
+    fi
+    ((attempt++))
+    ((previous_attempt++))
   done
-  set -e # Re-enable immediate exit on error
+
+  if ! "${run_results_exists}"; then
+    echo "dbt command failed after ${max_attempts} attempts"
+    return 1
+  else
+    echo "dbt command at least partially succeeded, see run artefacts for details"
+    return 0
+  fi
 }
 
 function run_source_freshness() {
   local source="${1:-}"
-  local max_retries=5
-  local attempt=2
-  set +e
+  local max_attempts=5
+  local attempt=1
+  local target_dir="${REPOSITORY_PATH}/${DBT_PROJECT}/target"
 
   local -a DBT_COMMAND
   if [ -n "${source}" ]; then
@@ -120,36 +124,29 @@ function run_source_freshness() {
   else
     DBT_COMMAND=(dbt source freshness --target "${DEPLOY_ENV}")
   fi
-  if "${DBT_COMMAND[@]}"; then
-    echo "Source freshness check passed"
-    rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
-  elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
-    echo "Source freshness check failed on freshness, exiting."
-    return 1
-  else
-    echo "Source freshness check failed without running, retrying."
-    while [[ "${attempt}" -le "${max_retries}" ]]; do
-      echo "Attempt ${attempt} of ${max_retries} to run source freshness check"
-      if [[ "${attempt}" -eq "${max_retries}" ]]; then
-        echo "Source freshness check failed after ${max_retries} attempts, exiting."
-        return 1
-      else
-        echo "Source freshness check failed on attempt ${attempt}, retrying"
-        if "${DBT_COMMAND[@]}"; then
-          echo "Source freshness check passed on retry"
-          rm -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json"
-          return 0
-        elif [ -f "${REPOSITORY_PATH}/${DBT_PROJECT}/target/run_results.json" ]; then
-          echo "Source freshness check failed on freshness, exiting."
-          return 1
-        else
-          echo "Source freshness check failed on attempt ${attempt} without running, retrying."
-        fi
-        ((attempt++))
-        sleep 10 # Wait before retrying
-      fi
-    done
-  fi
+
+  rm -f "${target_dir}/sources.json" "${target_dir}/run_results.json"
+
+  while [[ "${attempt}" -le "${max_attempts}" ]]; do
+    echo "Attempt ${attempt} of ${max_attempts} to run source freshness check"
+    if "${DBT_COMMAND[@]}"; then
+      echo "Source freshness check passed"
+      rm -f "${target_dir}/run_results.json"
+      return 0
+    elif [ -f "${target_dir}/sources.json" ]; then
+      echo "Source freshness check failed on freshness, exiting."
+      return 1
+    fi
+
+    if [[ "${attempt}" -eq "${max_attempts}" ]]; then
+      echo "Source freshness check failed after ${max_attempts} attempts, exiting."
+      return 1
+    fi
+
+    echo "Source freshness check failed on attempt ${attempt} without running, retrying."
+    ((attempt++))
+    sleep 10 # Wait before retrying
+  done
 }
 
 function nomis_setup() {
@@ -267,12 +264,12 @@ if [ "$DBT_PROJECT" = "hmpps_electronic_monitoring_data_tables" ]; then
   python3 "${REPOSITORY_PATH}/${DBT_PROJECT}/scripts/environment.py"
   # shellcheck source=entrypoint.sh
   source "${REPOSITORY_PATH}/${DBT_PROJECT}/set_env.sh"
-  if [ "$EM_REMOVE_HISTORIC" = "True" ]; then
+  if is_true "${EM_REMOVE_HISTORIC}"; then
     echo "Removing historic models for EM..."
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/historic"
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/analyses"
   fi
-  if [ "$EM_REMOVE_LIVE" = "True" ]; then
+  if is_true "${EM_REMOVE_LIVE}"; then
     echo "Removing live models for EM..."
     rm -rf "${REPOSITORY_PATH}/${DBT_PROJECT}/models/live"
   fi
@@ -290,7 +287,7 @@ dbt clean
 echo "Running dbt deps"
 dbt deps
 
-if [ "${CHECK_DUAL_MATERIALIZATION}" = "True" ]; then
+if is_true "${CHECK_DUAL_MATERIALIZATION}"; then
   set_dual_materialization_env_vars
 fi
 
@@ -299,7 +296,7 @@ echo "Running in mode [ ${MODE} ] for project [ ${DBT_PROJECT} ] to environment 
 # Always import run artefacts
 import_run_artefacts
 
-if [ "${RUN_SOURCE_FRESHNESS}" = "True" ]; then
+if is_true "${RUN_SOURCE_FRESHNESS}"; then
   run_source_freshness
 fi
 
@@ -307,16 +304,16 @@ if [ "${WORKFLOW_NAME}" = "nomis-daily" ]; then
   nomis_setup
 fi
 
-if [ "${RUN_UNIT_TESTS}" = "True" ]; then
+if is_true "${RUN_UNIT_TESTS}"; then
   run_unit_tests
 fi
 
-if [ "${DEPLOY_MODIFIED_SEEDS}" = "True" ]; then
+if is_true "${DEPLOY_MODIFIED_SEEDS}"; then
   deploy_modified_seeds
 fi
 
 # Optionally add 'state modified' to select criteria
-if [ "${STATE_MODE}" = "True" ]; then
+if is_true "${STATE_MODE}"; then
   echo "Adding state:modified to select criteria"
   export DBT_SELECT_CRITERIA="$DBT_SELECT_CRITERIA,state:modified+"
 fi
@@ -327,7 +324,7 @@ run_dbt_exit=0
 if run_dbt; then
   echo "dbt run (partially) succeeded"
 else
-  echo "dbt run failed after 5 retries"
+  echo "dbt run failed after 3 attempts"
   run_dbt_exit=1
 fi
 
@@ -335,7 +332,7 @@ fi
 set +e
 
 # Enforce lake formation (if set)
-if [ "$ENFORCE_LAKE_FORMATION" = "True" ]; then
+if is_true "${ENFORCE_LAKE_FORMATION}"; then
   enforce_lake_formation
 fi
 
