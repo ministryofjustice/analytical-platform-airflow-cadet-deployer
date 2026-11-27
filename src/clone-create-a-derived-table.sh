@@ -11,7 +11,7 @@ export GITHUB_KEY_PATH="${GITHUB_KEY_PATH:-"/tmp/github-key"}"
 export REPOSITORY_PATH="${REPOSITORY_PATH:-"${ANALYTICAL_PLATFORM_DIRECTORY}/create-a-derived-table"}"
 
 echo "Writing GitHub deploy key to [ ${GITHUB_KEY_PATH} ]"
-mkdir --parents "$(dirname "${GITHUB_KEY_PATH}")"
+mkdir -p "$(dirname "${GITHUB_KEY_PATH}")"
 
 (
   umask 077
