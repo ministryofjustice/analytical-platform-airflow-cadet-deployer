@@ -19,6 +19,7 @@ DEFAULT_UNIQUE_ID_YAML = Path(
 )
 
 DEFAULT_S3_BUCKET = "mojap-derived-tables"
+LOGGER = logging.getLogger(__name__)
 
 # dbt models finish with 'success'; tests finish with 'pass' or 'warn'.
 # All three are considered acceptable (non-failure) statuses.
@@ -138,9 +139,9 @@ def _download_run_results_from_s3(
             key = item.get("Key")
             if not key:
                 continue
-            if re.search(r"run_results_\d+\.json$", key):
-                keys.append(key)
-            elif key.endswith("run_results.json"):
+            if re.search(r"run_results_\d+\.json$", key) or key.endswith(
+                "run_results.json"
+            ):
                 keys.append(key)
 
     if not keys:
@@ -152,7 +153,7 @@ def _download_run_results_from_s3(
     with tempfile.TemporaryDirectory() as tmp_dir:
         for key in sorted(keys):
             dest = Path(tmp_dir) / Path(key).name
-            logging.info("Downloading s3://%s/%s", bucket, key)
+            LOGGER.info("Downloading s3://%s/%s", bucket, key)
             client.download_file(bucket, key, str(dest))
             data, max_completed = _load_run_results(dest)
             run_results_with_timestamps.append((data, max_completed))
@@ -204,10 +205,10 @@ def assert_success(
     for unique_id in unique_ids:
         status = last_status.get(unique_id)
         if status is None:
-            logging.error("%s -> not found", unique_id)
+            LOGGER.error("%s -> not found", unique_id)
             missing.append(unique_id)
         elif status != "success":
-            logging.error("%s -> %s", unique_id, status)
+            LOGGER.error("%s -> %s", unique_id, status)
             failed.append((unique_id, status))
 
     if missing or failed:
@@ -244,12 +245,15 @@ def assert_all_models_tests_success(
         for result in run_results.get("results", []):
             unique_id = result.get("unique_id", "")
             status = result.get("status")
-            if unique_id.startswith(("model.", "test.")) and status:
-                if last_status.get(unique_id) not in _ACCEPTABLE_STATUSES:
-                    last_status[unique_id] = status
+            if (
+                unique_id.startswith(("model.", "test."))
+                and status
+                and last_status.get(unique_id) not in _ACCEPTABLE_STATUSES
+            ):
+                last_status[unique_id] = status
 
     if not last_status:
-        logging.warning(
+        LOGGER.warning(
             "No model or test nodes found in run_results. "
             "Check DEPLOY_ENV and WORKFLOW_NAME are correct."
             "Possible there was nothing to do."
@@ -258,7 +262,7 @@ def assert_all_models_tests_success(
     failed: list[tuple[str, str]] = []
     for unique_id, status in sorted(last_status.items()):
         if status not in _ACCEPTABLE_STATUSES:
-            logging.error("%s -> %s", unique_id, status)
+            LOGGER.error("%s -> %s", unique_id, status)
             failed.append((unique_id, status))
 
     if failed:
@@ -279,7 +283,7 @@ def main() -> int:
     logging.getLogger("boto3").setLevel(logging.WARNING)
     logging.getLogger("botocore").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.info("Starting check_run_results")
+    LOGGER.info("Starting check_run_results")
     parser = argparse.ArgumentParser(
         description=(
             "Check dbt run_results.json for specific unique_id statuses. "
@@ -319,15 +323,15 @@ def main() -> int:
     )
 
     args = parser.parse_args()
-    logging.info("Parsed CLI arguments")
+    LOGGER.info("Parsed CLI arguments")
 
     logging.getLogger().setLevel(args.log_level.upper())
-    logging.info("Configured log level: %s", args.log_level.upper())
+    LOGGER.info("Configured log level: %s", args.log_level.upper())
 
     deploy_env = os.environ.get("DEPLOY_ENV")
     workflow_name = os.environ.get("WORKFLOW_NAME")
     bucket = os.environ.get("S3_BUCKET") or DEFAULT_S3_BUCKET
-    logging.info(
+    LOGGER.info(
         "Loaded env DEPLOY_ENV=%s WORKFLOW_NAME=%s S3_BUCKET=%s",
         deploy_env,
         workflow_name,
@@ -335,13 +339,13 @@ def main() -> int:
     )
 
     if args.check_all_nodes:
-        logging.info("CHECK_ALL_NODES is enabled - validating all model and test nodes")
+        LOGGER.info("CHECK_ALL_NODES is enabled - validating all model and test nodes")
         assert_all_models_tests_success(
             bucket=bucket,
             deploy_env=deploy_env,
             workflow_name=workflow_name,
         )
-        logging.info("Validation completed")
+        LOGGER.info("Validation completed")
         return 0
 
     unique_ids: list[str] = []
@@ -350,9 +354,9 @@ def main() -> int:
     yaml_path = args.unique_id_yaml
     if not unique_ids and yaml_path is None and DEFAULT_UNIQUE_ID_YAML.exists():
         yaml_path = DEFAULT_UNIQUE_ID_YAML
-        logging.info("Using default unique_id YAML path: %s", yaml_path)
+        LOGGER.info("Using default unique_id YAML path: %s", yaml_path)
     if not DEFAULT_UNIQUE_ID_YAML.exists():
-        logging.info("YAML not found at default path: %s", DEFAULT_UNIQUE_ID_YAML)
+        LOGGER.info("YAML not found at default path: %s", DEFAULT_UNIQUE_ID_YAML)
     if yaml_path:
         dataset_target = os.environ.get("DATASET_TARGET")
         if not dataset_target:
@@ -362,23 +366,23 @@ def main() -> int:
         raise ValueError(
             "At least one unique_id is required via --unique-id or --unique-id-yaml."
         )
-    logging.info("Resolved %d unique_id(s)", len(unique_ids))
+    LOGGER.info("Resolved %d unique_id(s)", len(unique_ids))
 
     if deploy_env and deploy_env != "prod":
-        logging.info(
+        LOGGER.info(
             "Adjusted %d unique_id(s) for deploy_env=%s",
             len(unique_ids),
             deploy_env,
         )
 
-    logging.info("Beginning run_results validation")
+    LOGGER.info("Beginning run_results validation")
     assert_success(
         unique_ids,
         bucket=bucket,
         deploy_env=deploy_env,
         workflow_name=workflow_name,
     )
-    logging.info("Validation completed")
+    LOGGER.info("Validation completed")
     return 0
 
 
