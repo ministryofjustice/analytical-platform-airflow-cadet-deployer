@@ -14,8 +14,9 @@ from pathlib import Path
 
 import boto3
 
-DEFAULT_UNIQUE_ID_YAML = Path(
-    "./create-a-derived-table/scripts/data/airflow-dag-trigger.yaml"
+DEFAULT_UNIQUE_ID_YAML = (
+    Path(os.environ.get("REPOSITORY_PATH", "./create-a-derived-table"))
+    / "scripts/data/airflow-dag-trigger.yaml"
 )
 
 DEFAULT_S3_BUCKET = "mojap-derived-tables"
@@ -106,16 +107,20 @@ def _load_run_results(path: Path) -> tuple[dict, str]:
     with path.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
 
-    # Extract all completed_at values from timing entries
+    # Extract completed_at values from timing entries, or fall back to generated_at
     completed_times = [
         t["completed_at"]
-        for result in data["results"]
+        for result in data.get("results", [])
         for t in result.get("timing", [])
         if "completed_at" in t
     ]
 
     # Find the maximum (ISO 8601 strings sort correctly)
-    max_completed = max(completed_times) if completed_times else ""
+    max_completed = (
+        max(completed_times)
+        if completed_times
+        else data.get("metadata", {}).get("generated_at", "")
+    )
     return data, max_completed
 
 
@@ -195,8 +200,7 @@ def assert_success(
         statuses = _index_statuses(run_results)
         for unique_id in unique_ids:
             status = statuses.get(unique_id)
-            # Only update if found and not already succeeded
-            if status and last_status.get(unique_id) != "success":
+            if status:
                 last_status[unique_id] = status
 
     missing: list[str] = []
@@ -207,7 +211,7 @@ def assert_success(
         if status is None:
             LOGGER.error("%s -> not found", unique_id)
             missing.append(unique_id)
-        elif status != "success":
+        elif status not in _ACCEPTABLE_STATUSES:
             LOGGER.error("%s -> %s", unique_id, status)
             failed.append((unique_id, status))
 
@@ -222,7 +226,9 @@ def assert_success(
             f"(see ERROR lines above)."
         )
 
-    print(f"All {len(unique_ids)} unique_id(s) finished with status=success.")
+    LOGGER.info(
+        "All %d unique_id(s) finished with an acceptable status.", len(unique_ids)
+    )
 
 
 def assert_all_models_tests_success(
@@ -245,17 +251,13 @@ def assert_all_models_tests_success(
         for result in run_results.get("results", []):
             unique_id = result.get("unique_id", "")
             status = result.get("status")
-            if (
-                unique_id.startswith(("model.", "test."))
-                and status
-                and last_status.get(unique_id) not in _ACCEPTABLE_STATUSES
-            ):
+            if unique_id.startswith(("model.", "test.")) and status:
                 last_status[unique_id] = status
 
     if not last_status:
         LOGGER.warning(
             "No model or test nodes found in run_results. "
-            "Check DEPLOY_ENV and WORKFLOW_NAME are correct."
+            "Check DEPLOY_ENV and WORKFLOW_NAME are correct. "
             "Possible there was nothing to do."
         )
 
@@ -271,7 +273,7 @@ def assert_all_models_tests_success(
             f"did not finish successfully (see ERROR lines above)."
         )
 
-    print(f"All {len(last_status)} model/test node(s) finished successfully.")
+    LOGGER.info("All %d model/test node(s) finished successfully.", len(last_status))
 
 
 def main() -> int:
@@ -318,8 +320,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--log-level",
-        default="INFO",
-        help="Logging level (default: INFO)",
+        default=os.environ.get("LOG_LEVEL", "INFO"),
+        help="Logging level (default: LOG_LEVEL env var or INFO)",
     )
 
     args = parser.parse_args()
@@ -364,16 +366,9 @@ def main() -> int:
         unique_ids.extend(_parse_unique_ids_yaml(yaml_path, dataset_target))
     if not unique_ids:
         raise ValueError(
-            "At least one unique_id is required via --unique-id or --unique-id-yaml."
+            "At least one unique_id is required via --unique-ids or --unique-id-yaml."
         )
     LOGGER.info("Resolved %d unique_id(s)", len(unique_ids))
-
-    if deploy_env and deploy_env != "prod":
-        LOGGER.info(
-            "Adjusted %d unique_id(s) for deploy_env=%s",
-            len(unique_ids),
-            deploy_env,
-        )
 
     LOGGER.info("Beginning run_results validation")
     assert_success(

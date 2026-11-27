@@ -4,10 +4,14 @@ set -euo pipefail
 
 export IS_SUNDAY_DEPLOY="${IS_SUNDAY_DEPLOY:-false}"
 export MOJAP_IMAGE_VERSION="${MOJAP_IMAGE_VERSION:-"unknown"}"
-export IS_DATASET_CHECK="${IS_DATASET_CHECK:-"False"}"
+export IS_DATASET_CHECK="${IS_DATASET_CHECK:-false}"
 export DATASET_TARGET="${DATASET_TARGET:-""}"
 export UNIQUE_IDS="${UNIQUE_IDS:-}"
-export RUN_IN_DF="${RUN_IN_DF:-"False"}"
+export RUN_IN_DF="${RUN_IN_DF:-false}"
+
+function is_true() {
+  [[ "${1,,}" == "true" ]]
+}
 
 function dataset_check() {
   local -a command=(uv run check_run_results.py)
@@ -31,19 +35,23 @@ function dataset_check() {
 echo "=== Running Airflow CaDeT Deployer (version: ${MOJAP_IMAGE_VERSION}) ==="
 
 echo "=== Is Sunday Deploy: ${IS_SUNDAY_DEPLOY} ==="
-if [ "${IS_SUNDAY_DEPLOY}" = "True" ]; then
+if is_true "${IS_SUNDAY_DEPLOY}"; then
   echo "=== Checking if today is the first Sunday of the month ==="
   ./date-checker.sh
 fi
 
-if [ "${RUN_IN_DF}" != "True" ]; then
-  echo "=== Running clone-create-a-derived-table.sh ==="
-  ./clone-create-a-derived-table.sh
-
+if ! is_true "${RUN_IN_DF}"; then
   echo "=== Am I running a dataset check? ${IS_DATASET_CHECK} ==="
-  if [ "${IS_DATASET_CHECK}" = "True" ]; then
+  if is_true "${IS_DATASET_CHECK}"; then
+    if [ -n "${DATASET_TARGET}" ] && [ -z "${UNIQUE_IDS}" ]; then
+      echo "=== Cloning repository for DATASET_TARGET YAML lookup ==="
+      ./clone-create-a-derived-table.sh
+    fi
     dataset_check
   fi
+
+  echo "=== Running clone-create-a-derived-table.sh ==="
+  ./clone-create-a-derived-table.sh
 
   echo "=== Running create-a-derived-table.sh ==="
   ./create-a-derived-table.sh
